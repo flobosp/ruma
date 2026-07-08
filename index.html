@@ -2,634 +2,901 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1a3a1a">
-<title>Ruma — Inventario de Trozas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a2e1a">
+<title>RumaVol — Inventario de Trozas</title>
 <style>
-  :root {
-    --bg: #0f1f0f; --bg2: #162416; --bg3: #1e301e; --card: #1a2e1a;
-    --border: #2d4a2d; --border2: #3d6a3d;
-    --green: #4caf50; --green2: #66bb6a; --green3: #81c784; --greenlit: #a5d6a7;
-    --text: #e8f5e9; --text2: #a5d6a7; --text3: #6a9e6a;
-    --amber: #ffa726; --amber2: #ffb74d; --red: #ef5350;
-    --radius: 12px; --radius-sm: 8px;
-    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { background: var(--bg); color: var(--text); font-family: var(--font); overflow-x: hidden; }
-  .header {
-    background: var(--bg2); border-bottom: 1px solid var(--border);
-    padding: 14px 20px 12px; display: flex; align-items: center; gap: 12px;
-    position: sticky; top: 0; z-index: 100;
-  }
-  .header-icon { width: 36px; height: 36px; background: var(--green); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-  .header h1 { font-size: 17px; font-weight: 600; color: var(--text); }
-  .header p { font-size: 11px; color: var(--text3); margin-top: 1px; }
-  .header-key-btn { margin-left: auto; background: none; border: 1px solid var(--border2); border-radius: 20px; color: var(--text3); font-size: 11px; padding: 4px 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-  .header-key-btn.ok { border-color: var(--green); color: var(--green2); }
-  .main { padding: 20px 16px 40px; max-width: 500px; margin: 0 auto; }
-  .step { display: none; }
-  .step.active { display: block; }
+:root {
+  --bg:      #0d1a0d;
+  --bg2:     #132013;
+  --bg3:     #1a2e1a;
+  --card:    #1e351e;
+  --border:  #2a4a2a;
+  --border2: #3a6a3a;
+  --green:   #4caf50;
+  --green2:  #66bb6a;
+  --green3:  #a5d6a7;
+  --text:    #e8f5e9;
+  --text2:   #a5d6a7;
+  --text3:   #5a8a5a;
+  --amber:   #ffa726;
+  --red:     #ef5350;
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --r: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden}
 
-  /* API KEY SCREEN */
-  .key-screen { text-align: center; padding: 30px 0 10px; }
-  .key-screen .lock-icon { font-size: 52px; margin-bottom: 16px; }
-  .key-screen h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-  .key-screen p { font-size: 13px; color: var(--text3); line-height: 1.6; margin-bottom: 24px; }
-  .key-steps { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; text-align: left; }
-  .key-steps h3 { font-size: 12px; color: var(--text2); font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .key-step { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
-  .key-step:last-child { margin-bottom: 0; }
-  .key-num { width: 20px; height: 20px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #0a1a0a; flex-shrink: 0; margin-top: 1px; }
-  .key-step p { font-size: 12px; color: var(--text3); line-height: 1.5; margin: 0; }
-  .key-step a { color: var(--green2); }
+/* HEADER */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:12px 16px;display:flex;align-items:center;gap:10px;
+  position:sticky;top:0;z-index:200}
+.hdr-icon{width:34px;height:34px;background:var(--green);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.hdr h1{font-size:16px;font-weight:700;color:var(--text)}
+.hdr p{font-size:10px;color:var(--text3);margin-top:1px}
+.hdr-key{margin-left:auto;background:none;border:1px solid var(--border2);
+  border-radius:20px;color:var(--text3);font-size:11px;padding:4px 10px;cursor:pointer;flex-shrink:0}
+.hdr-key.ok{border-color:var(--green);color:var(--green2)}
 
-  /* UPLOAD */
-  .upload-zone {
-    border: 2px dashed var(--border2); border-radius: var(--radius); padding: 32px 20px;
-    text-align: center; cursor: pointer; background: var(--bg2); margin-bottom: 20px; position: relative;
-  }
-  .upload-zone:active { border-color: var(--green); background: var(--bg3); }
-  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-icon { font-size: 40px; margin-bottom: 12px; }
-  .upload-zone h2 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-  .upload-zone p { font-size: 13px; color: var(--text3); line-height: 1.5; }
-  .preview-wrap { position: relative; margin-bottom: 20px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
-  .preview-wrap img { width: 100%; display: block; max-height: 300px; object-fit: cover; }
-  .preview-change { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; font-size: 12px; border-radius: 20px; padding: 5px 12px; cursor: pointer; border: none; }
+/* MAIN */
+.main{padding:16px 14px 60px;max-width:520px;margin:0 auto}
+.step{display:none}.step.active{display:block}
 
-  /* FORM */
-  .form-group { margin-bottom: 16px; }
-  .form-group label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 6px; font-weight: 500; }
-  .form-group select, .form-group input {
-    width: 100%; background: var(--bg2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); color: var(--text); font-size: 15px;
-    padding: 10px 14px; outline: none; appearance: none; -webkit-appearance: none;
-  }
-  .form-group select:focus, .form-group input:focus { border-color: var(--green); }
-  .select-wrap { position: relative; }
-  .select-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text3); font-size: 12px; }
-  .key-input-wrap { position: relative; }
-  .key-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; padding: 4px; }
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card h3{font-size:12px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.5px;font-weight:600;margin-bottom:10px}
 
-  /* BUTTONS */
-  .btn { width: 100%; padding: 14px; border-radius: var(--radius); font-size: 16px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s, transform 0.1s; }
-  .btn:active { transform: scale(0.98); opacity: 0.85; }
-  .btn-primary { background: var(--green); color: #0a1a0a; }
-  .btn-secondary { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
-  .btn-danger { background: rgba(239,83,80,0.15); color: var(--red); border: 1px solid rgba(239,83,80,0.3); }
-  .btn + .btn { margin-top: 10px; }
+/* FORM */
+.fg{margin-bottom:14px}
+.fg label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;font-weight:500}
+.fg input,.fg select{width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:14px;padding:9px 12px;
+  outline:none;appearance:none;-webkit-appearance:none}
+.fg input:focus,.fg select:focus{border-color:var(--green)}
+.sel-wrap{position:relative}
+.sel-arr{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--text3);font-size:11px}
+.key-wrap{position:relative}
+.key-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px}
 
-  /* LOADING */
-  .loading-wrap { text-align: center; padding: 40px 20px; }
-  .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-wrap h2 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
-  .loading-wrap p { font-size: 13px; color: var(--text3); }
+/* UPLOAD */
+.upload{border:2px dashed var(--border2);border-radius:var(--r);
+  padding:28px 16px;text-align:center;cursor:pointer;background:var(--bg2);
+  margin-bottom:14px;position:relative;transition:border-color .2s}
+.upload:active{border-color:var(--green);background:var(--bg3)}
+.upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload .ico{font-size:36px;margin-bottom:10px}
+.upload h2{font-size:15px;font-weight:600;margin-bottom:5px}
+.upload p{font-size:12px;color:var(--text3);line-height:1.5}
+.prev-wrap{position:relative;margin-bottom:14px;border-radius:var(--r);
+  overflow:hidden;border:1px solid var(--border)}
+.prev-wrap img{width:100%;display:block;max-height:260px;object-fit:cover}
+.prev-btn{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.7);
+  color:#fff;font-size:11px;border-radius:20px;padding:4px 10px;cursor:pointer;border:none}
 
-  /* ERROR */
-  .error-box { background: rgba(239,83,80,0.1); border: 1px solid rgba(239,83,80,0.3); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: var(--red); line-height: 1.5; }
+/* BUTTONS */
+.btn{width:100%;padding:13px;border-radius:var(--r);font-size:15px;font-weight:600;
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:7px;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.98);opacity:.85}
+.btn+.btn{margin-top:8px}
+.btn-primary{background:var(--green);color:#071407}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-danger{background:rgba(239,83,80,.12);color:var(--red);border:1px solid rgba(239,83,80,.3)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
 
-  /* RESULTS */
-  .result-header { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-  .result-header h2 { font-size: 14px; color: var(--text3); font-weight: 500; margin-bottom: 10px; }
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-card { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px; }
-  .stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-value { font-size: 22px; font-weight: 700; color: var(--green2); }
-  .stat-unit { font-size: 12px; color: var(--text3); margin-top: 2px; }
-  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 320px; }
-  thead th { background: var(--bg3); color: var(--text2); font-weight: 600; padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--border); font-size: 12px; white-space: nowrap; }
-  thead th:first-child { text-align: left; }
-  tbody tr { border-bottom: 1px solid var(--border); }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
-  tbody td { padding: 9px 12px; text-align: center; color: var(--text); }
-  tbody td:first-child { text-align: left; font-weight: 600; color: var(--green2); }
-  tfoot td { padding: 10px 12px; text-align: center; background: var(--bg3); font-weight: 700; color: var(--amber2); border-top: 2px solid var(--border2); }
-  tfoot td:first-child { text-align: left; }
-  .notas-box { background: var(--bg2); border-left: 3px solid var(--green); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 14px; font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 20px; }
-  .notas-box strong { color: var(--text2); }
-  .info-box { background: rgba(76,175,80,0.08); border: 1px solid rgba(76,175,80,0.25); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 20px; }
-  .info-box strong { color: var(--green3); display: block; margin-bottom: 4px; font-size: 13px; }
-  .install-banner { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px; }
-  .install-banner .ib-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
-  .install-banner h3 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
-  .install-banner p { font-size: 11px; color: var(--text3); line-height: 1.5; }
-  .ib-close { margin-left: auto; background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; flex-shrink: 0; padding: 0 0 0 8px; }
-  @media (max-width: 360px) { .main { padding: 16px 12px 32px; } }
+/* INFO */
+.info{background:rgba(76,175,80,.07);border:1px solid rgba(76,175,80,.2);
+  border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text3);
+  line-height:1.6;margin-bottom:14px}
+.info strong{color:var(--green2);display:block;margin-bottom:3px;font-size:12px}
+.err{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.3);
+  border-radius:8px;padding:12px;font-size:12px;color:var(--red);
+  line-height:1.5;margin-bottom:12px}
+
+/* LOADING */
+.loading{text-align:center;padding:40px 20px}
+.spinner{width:44px;height:44px;border:3px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;
+  animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading h2{font-size:15px;margin-bottom:5px}
+.loading p{font-size:12px;color:var(--text3)}
+
+/* CANVAS EDITOR */
+.editor-wrap{position:relative;margin-bottom:12px;
+  border-radius:var(--r);overflow:hidden;border:1px solid var(--border);
+  touch-action:none;user-select:none}
+#editorCanvas{width:100%;display:block;cursor:crosshair;touch-action:none}
+.editor-toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tool-btn{padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;
+  transition:background .15s}
+.tool-btn.active{background:var(--green);color:#071407;border-color:var(--green)}
+.tool-btn:active{opacity:.8}
+.editor-hint{font-size:11px;color:var(--text3);margin-bottom:10px;
+  padding:8px 10px;background:var(--bg3);border-radius:6px;line-height:1.5}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{background:var(--bg3);border-radius:8px;padding:10px}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.stat-val{font-size:20px;font-weight:700;color:var(--green2)}
+.stat-unit{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:300px}
+thead th{background:var(--bg3);color:var(--text2);font-weight:600;
+  padding:9px 10px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+tbody td{padding:8px 10px;text-align:center;color:var(--text)}
+tbody td:first-child{text-align:left;font-weight:600;color:var(--green2)}
+tfoot td{padding:9px 10px;text-align:center;background:var(--bg3);
+  font-weight:700;color:var(--amber);border-top:2px solid var(--border2)}
+tfoot td:first-child{text-align:left}
+
+/* KEY SCREEN */
+.key-screen{text-align:center;padding:24px 0 8px}
+.key-screen .lock{font-size:48px;margin-bottom:14px}
+.key-screen h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.key-screen p{font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:18px}
+.key-steps{background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px;margin-bottom:16px;text-align:left}
+.key-steps h3{font-size:11px;color:var(--text2);font-weight:600;
+  margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+.ks{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.ks:last-child{margin-bottom:0}
+.ks-num{width:18px;height:18px;background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:10px;
+  font-weight:700;color:#071407;flex-shrink:0;margin-top:1px}
+.ks p{font-size:11px;color:var(--text3);line-height:1.5;margin:0}
+.ks a{color:var(--green2)}
+
+@media(max-width:360px){.main{padding:12px 10px 50px}}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-icon">🪵</div>
+<div class="hdr">
+  <div class="hdr-icon">🪵</div>
   <div>
-    <h1>Ruma — Inventario JAS</h1>
-    <p>Clasificación de trozas por diámetro y volumen</p>
+    <h1>RumaVol</h1>
+    <p>Inventario de trozas · Fórmula JAS</p>
   </div>
-  <button class="header-key-btn" id="headerKeyBtn" onclick="showKeySettings()">⚙ API Key</button>
+  <button class="hdr-key" id="hdrKeyBtn" onclick="showStep(9)">⚙ API Key</button>
 </div>
 
 <div class="main">
 
-  <!-- PASO 0: Configurar API Key -->
-  <div class="step active" id="step0">
-    <div class="key-screen">
-      <div class="lock-icon">🔑</div>
-      <h2>Configura tu API Key</h2>
-      <p>Para analizar las imágenes esta app usa la inteligencia artificial de Anthropic (Claude). Necesitas una API key gratuita.</p>
-    </div>
-
-    <div class="key-steps">
-      <h3>Cómo obtener tu API key</h3>
-      <div class="key-step">
-        <div class="key-num">1</div>
-        <p>Entra a <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> y crea una cuenta gratuita</p>
-      </div>
-      <div class="key-step">
-        <div class="key-num">2</div>
-        <p>Ve a <strong>API Keys</strong> → <strong>Create Key</strong></p>
-      </div>
-      <div class="key-step">
-        <div class="key-num">3</div>
-        <p>Copia la clave (empieza con <strong>sk-ant-</strong>) y pégala aquí abajo</p>
-      </div>
-      <div class="key-step">
-        <div class="key-num">4</div>
-        <p>La clave se guarda solo en este dispositivo y no se comparte con nadie</p>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Tu API Key de Anthropic</label>
-      <div class="key-input-wrap">
-        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" />
-        <button class="key-toggle" onclick="toggleKeyVisibility()" id="keyToggleBtn">👁</button>
-      </div>
-    </div>
-
-    <div id="step0Error" class="error-box" style="display:none"></div>
-
-    <button class="btn btn-primary" onclick="saveApiKey()">✓ Guardar y continuar</button>
+<!-- PASO 0: API Key inicial -->
+<div class="step active" id="step0">
+  <div class="key-screen">
+    <div class="lock">🔑</div>
+    <h2>Configura tu API Key</h2>
+    <p>RumaVol usa inteligencia artificial para detectar y medir las trozas. Necesitas una API key gratuita de Anthropic.</p>
   </div>
-
-  <!-- PASO 1: Foto + configuración -->
-  <div class="step" id="step1">
-
-    <div class="install-banner" id="installBanner">
-      <div class="ib-icon">📲</div>
-      <div>
-        <h3>Instalar como app</h3>
-        <p>En Chrome: menú (⋮) → "Añadir a pantalla de inicio"</p>
-      </div>
-      <button class="ib-close" onclick="document.getElementById('installBanner').style.display='none'">×</button>
-    </div>
-
-    <div id="uploadZone" class="upload-zone">
-      <input type="file" accept="image/*" capture="environment" id="fileInput" />
-      <div class="upload-icon">📷</div>
-      <h2>Fotografía de la ruma</h2>
-      <p>Toca aquí para tomar foto o elegir de la galería.<br>Debe tener una <strong>línea blanca vertical de 1 metro</strong> como escala.</p>
-    </div>
-
-    <div id="previewWrap" class="preview-wrap" style="display:none">
-      <img id="previewImg" src="" alt="Vista previa" />
-      <button class="preview-change" onclick="resetPhoto()">Cambiar foto</button>
-    </div>
-
-    <div class="info-box">
-      <strong>🔬 ¿Cómo tomar la foto?</strong>
-      Coloca un jalón o vara de 1 metro al costado izquierdo de la ruma. Captura el extremo de los troncos de frente con el jalón visible.
-    </div>
-
-    <div class="form-group">
-      <label>Largo de los troncos (metros)</label>
-      <div class="select-wrap">
-        <select id="largoSelect">
-          <option value="">— Selecciona el largo —</option>
-          <option value="2.5">2,5 m</option>
-          <option value="3.1">3,1 m</option>
-          <option value="3.7">3,7 m</option>
-          <option value="5.8">5,8 m</option>
-          <option value="5.9">5,9 m</option>
-          <option value="6.0">6,0 m</option>
-        </select>
-        <span class="select-arrow">▼</span>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Identificación de la ruma (opcional)</label>
-      <input type="text" id="rumaId" placeholder="Ej: Ruma 01 — Rodal Norte" />
-    </div>
-
-    <div id="step1Error" class="error-box" style="display:none"></div>
-    <button class="btn btn-primary" onclick="startAnalysis()">🔍 Analizar imagen</button>
+  <div class="key-steps">
+    <h3>Cómo obtener tu API key</h3>
+    <div class="ks"><div class="ks-num">1</div><p>Entra a <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> y crea una cuenta gratuita</p></div>
+    <div class="ks"><div class="ks-num">2</div><p>Ve a <strong>API Keys → Create Key</strong></p></div>
+    <div class="ks"><div class="ks-num">3</div><p>Copia la clave (empieza con <strong>sk-ant-</strong>) y pégala aquí abajo</p></div>
+    <div class="ks"><div class="ks-num">4</div><p>Se guarda solo en este dispositivo</p></div>
   </div>
-
-  <!-- PASO 2: Analizando -->
-  <div class="step" id="step2">
-    <div class="loading-wrap">
-      <div class="spinner"></div>
-      <h2>Analizando imagen...</h2>
-      <p id="loadingMsg">Detectando escala de 1 metro y midiendo diámetros</p>
+  <div class="fg">
+    <label>API Key de Anthropic</label>
+    <div class="key-wrap">
+      <input type="password" id="key0" placeholder="sk-ant-api03-..." autocomplete="off"/>
+      <button class="key-eye" onclick="toggleEye('key0','eye0')" id="eye0">👁</button>
     </div>
   </div>
-
-  <!-- PASO 3: Resultados -->
-  <div class="step" id="step3">
-    <div class="result-header">
-      <h2 id="resultTitle">INVENTARIO RUMA</h2>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Total trozas</div>
-          <div class="stat-value" id="statTrozas">—</div>
-          <div class="stat-unit">unidades contadas</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Volumen total</div>
-          <div class="stat-value" id="statVol">—</div>
-          <div class="stat-unit">m³ (JAS)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Rango diámetros</div>
-          <div class="stat-value" id="statRango">—</div>
-          <div class="stat-unit">cm (mín — máx)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Largo aplicado</div>
-          <div class="stat-value" id="statLargo">—</div>
-          <div class="stat-unit">metros</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Diámetro (cm)</th>
-            <th>Cant.</th>
-            <th>Vol. unit. (m³)</th>
-            <th>Vol. total (m³)</th>
-            <th>%</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-        <tfoot id="tableFoot"></tfoot>
-      </table>
-    </div>
-
-    <div class="notas-box" id="notasBox"></div>
-
-    <button class="btn btn-secondary" onclick="copyResult()">📋 Copiar tabla como texto</button>
-    <button class="btn btn-secondary" onclick="newAnalysis()">📷 Nuevo análisis</button>
-  </div>
-
-  <!-- PASO 4: Editar API Key (desde header) -->
-  <div class="step" id="step4">
-    <div class="key-screen">
-      <div class="lock-icon">🔑</div>
-      <h2>Cambiar API Key</h2>
-      <p>Tu clave actual está guardada en este dispositivo. Puedes reemplazarla o eliminarla.</p>
-    </div>
-
-    <div class="form-group">
-      <label>Nueva API Key de Anthropic</label>
-      <div class="key-input-wrap">
-        <input type="password" id="apiKeyInput2" placeholder="sk-ant-api03-..." autocomplete="off" />
-        <button class="key-toggle" onclick="toggleKeyVisibility2()" id="keyToggleBtn2">👁</button>
-      </div>
-    </div>
-
-    <div id="step4Error" class="error-box" style="display:none"></div>
-    <button class="btn btn-primary" onclick="saveApiKey2()">✓ Guardar nueva key</button>
-    <button class="btn btn-danger" onclick="deleteApiKey()" style="margin-top:10px">🗑 Eliminar API key</button>
-    <button class="btn btn-secondary" onclick="cancelKeySettings()" style="margin-top:10px">← Volver</button>
-  </div>
-
+  <div id="err0" class="err" style="display:none"></div>
+  <button class="btn btn-primary" onclick="saveKey(0)">✓ Guardar y continuar</button>
 </div>
 
+<!-- PASO 1: Foto + parámetros -->
+<div class="step" id="step1">
+  <div id="uploadZone" class="upload">
+    <input type="file" accept="image/*" capture="environment" id="fileInput"/>
+    <div class="ico">📷</div>
+    <h2>Fotografía de la ruma</h2>
+    <p>Toca para fotografiar o elegir imagen.<br>Incluye una <strong>vara blanca vertical de 1 metro</strong> como escala en el borde izquierdo.</p>
+  </div>
+  <div id="prevWrap" class="prev-wrap" style="display:none">
+    <img id="prevImg" src="" alt=""/>
+    <button class="prev-btn" onclick="resetPhoto()">Cambiar foto</button>
+  </div>
+  <div class="info">
+    <strong>📐 Escala obligatoria</strong>
+    Una vara o jalón blanco de exactamente 1 metro en el costado izquierdo permite medir los diámetros automáticamente.
+  </div>
+  <div class="fg">
+    <label>Largo de las trozas (metros)</label>
+    <div class="sel-wrap">
+      <select id="largoSelect"><option value="">— Selecciona el largo —</option></select>
+      <span class="sel-arr">▼</span>
+    </div>
+  </div>
+  <div class="fg">
+    <label>Identificación de la ruma (opcional)</label>
+    <input type="text" id="rumaId" placeholder="Ej: Ruma 01 — Rodal Norte"/>
+  </div>
+  <div id="err1" class="err" style="display:none"></div>
+  <button class="btn btn-primary" id="btnAnalizar" onclick="startAnalysis()">🔍 Detectar trozas automáticamente</button>
+</div>
+
+<!-- PASO 2: Analizando -->
+<div class="step" id="step2">
+  <div class="loading">
+    <div class="spinner"></div>
+    <h2>Analizando imagen...</h2>
+    <p id="loadMsg">Detectando escala y midiendo diámetros</p>
+  </div>
+</div>
+
+<!-- PASO 3: Editor interactivo -->
+<div class="step" id="step3">
+  <div class="card">
+    <h3>Editor de trozas</h3>
+    <div class="editor-toolbar">
+      <button class="tool-btn active" id="tool-select" onclick="setTool('select')">👆 Seleccionar</button>
+      <button class="tool-btn" id="tool-add" onclick="setTool('add')">➕ Agregar</button>
+      <button class="tool-btn" id="tool-delete" onclick="setTool('delete')">🗑 Eliminar</button>
+      <button class="tool-btn" id="tool-poly" onclick="setTool('poly')">⬡ Perímetro</button>
+    </div>
+    <div class="editor-hint" id="editorHint">
+      👆 <strong>Seleccionar:</strong> toca una troza para seleccionarla y ajustar su diámetro arrastrando el borde.
+    </div>
+    <div class="editor-wrap">
+      <canvas id="editorCanvas"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+        <div style="font-size:10px;color:var(--text3)">TROZAS</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green2)" id="edCount">0</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+        <div style="font-size:10px;color:var(--text3)">LARGO</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green2)" id="edLargo">—</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+        <div style="font-size:10px;color:var(--text3)">VOLUMEN</div>
+        <div style="font-size:18px;font-weight:700;color:var(--amber)" id="edVol">—</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="goToResults()">📊 Ver tabla de resultados</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="resetAll()">↩ Nueva ruma</button>
+  </div>
+</div>
+
+<!-- PASO 4: Resultados -->
+<div class="step" id="step4">
+  <div class="card">
+    <h3 id="resTitle">INVENTARIO RUMA</h3>
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-lbl">Total trozas</div><div class="stat-val" id="rTrozas">—</div><div class="stat-unit">unidades</div></div>
+      <div class="stat"><div class="stat-lbl">Volumen total</div><div class="stat-val" id="rVol">—</div><div class="stat-unit">m³ JAS</div></div>
+      <div class="stat"><div class="stat-lbl">Diámetro medio</div><div class="stat-val" id="rDiam">—</div><div class="stat-unit">cm</div></div>
+      <div class="stat"><div class="stat-lbl">Largo aplicado</div><div class="stat-val" id="rLargo">—</div><div class="stat-unit">metros</div></div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Diámetro (cm)</th><th>Cant.</th><th>Vol.Unit.(m³)</th><th>Vol.Tot.(m³)</th><th>%</th>
+      </tr></thead>
+      <tbody id="resTbody"></tbody>
+      <tfoot id="resTfoot"></tfoot>
+    </table>
+  </div>
+  <button class="btn btn-secondary" onclick="showStep(3)">✏️ Volver al editor</button>
+  <button class="btn btn-secondary" onclick="copyResults()">📋 Copiar tabla</button>
+  <button class="btn btn-secondary" onclick="resetAll()">📷 Nueva ruma</button>
+</div>
+
+<!-- PASO 9: Cambiar API Key -->
+<div class="step" id="step9">
+  <div class="key-screen">
+    <div class="lock">🔑</div>
+    <h2>Cambiar API Key</h2>
+    <p>Tu clave está guardada en este dispositivo.</p>
+  </div>
+  <div class="fg">
+    <label>Nueva API Key</label>
+    <div class="key-wrap">
+      <input type="password" id="key9" placeholder="sk-ant-api03-..." autocomplete="off"/>
+      <button class="key-eye" onclick="toggleEye('key9','eye9')" id="eye9">👁</button>
+    </div>
+  </div>
+  <div id="err9" class="err" style="display:none"></div>
+  <button class="btn btn-primary" onclick="saveKey(9)">✓ Guardar</button>
+  <button class="btn btn-danger" onclick="deleteKey()" style="margin-top:8px">🗑 Eliminar key</button>
+  <button class="btn btn-secondary" onclick="backFromKey()" style="margin-top:8px">← Volver</button>
+</div>
+
+</div><!-- /main -->
+
 <script>
-const JAS = {
-  16:{2.5:0.064,3.1:0.079,3.7:0.095,5.8:0.148,5.9:0.151,6.0:0.154},
-  18:{2.5:0.081,3.1:0.100,3.7:0.120,5.8:0.188,5.9:0.191,6.0:0.194},
-  20:{2.5:0.100,3.1:0.124,3.7:0.148,5.8:0.232,5.9:0.236,6.0:0.240},
-  22:{2.5:0.121,3.1:0.150,3.7:0.179,5.8:0.281,5.9:0.286,6.0:0.290},
-  24:{2.5:0.144,3.1:0.179,3.7:0.213,5.8:0.334,5.9:0.340,6.0:0.346},
-  26:{2.5:0.169,3.1:0.210,3.7:0.250,5.8:0.392,5.9:0.399,6.0:0.406},
-  28:{2.5:0.196,3.1:0.243,3.7:0.290,5.8:0.455,5.9:0.463,6.0:0.470},
-  30:{2.5:0.225,3.1:0.279,3.7:0.333,5.8:0.522,5.9:0.531,6.0:0.540},
-  32:{2.5:0.256,3.1:0.317,3.7:0.379,5.8:0.594,5.9:0.604,6.0:0.614},
-  34:{2.5:0.289,3.1:0.358,3.7:0.428,5.8:0.670,5.9:0.682,6.0:0.694},
-  36:{2.5:0.324,3.1:0.402,3.7:0.480,5.8:0.752,5.9:0.765,6.0:0.778},
-  38:{2.5:0.361,3.1:0.448,3.7:0.534,5.8:0.838,5.9:0.852,6.0:0.866},
-  40:{2.5:0.400,3.1:0.496,3.7:0.592,5.8:0.928,5.9:0.944,6.0:0.960},
-  42:{2.5:0.441,3.1:0.547,3.7:0.653,5.8:1.023,5.9:1.041,6.0:1.058},
-  44:{2.5:0.484,3.1:0.600,3.7:0.716,5.8:1.123,5.9:1.142,6.0:1.162},
-  46:{2.5:0.529,3.1:0.656,3.7:0.783,5.8:1.227,5.9:1.248,6.0:1.270},
-  48:{2.5:0.576,3.1:0.714,3.7:0.852,5.8:1.336,5.9:1.359,6.0:1.382},
-  50:{2.5:0.625,3.1:0.775,3.7:0.925,5.8:1.450,5.9:1.475,6.0:1.500},
-  52:{2.5:0.676,3.1:0.838,3.7:1.000,5.8:1.568,5.9:1.595,6.0:1.622},
-  54:{2.5:0.729,3.1:0.904,3.7:1.079,5.8:1.691,5.9:1.720,6.0:1.750},
-  56:{2.5:0.784,3.1:0.972,3.7:1.160,5.8:1.819,5.9:1.850,6.0:1.882},
-  58:{2.5:0.841,3.1:1.043,3.7:1.245,5.8:1.951,5.9:1.985,6.0:2.018},
-  60:{2.5:0.900,3.1:1.116,3.7:1.332,5.8:2.088,5.9:2.124,6.0:2.160}
+// ─── CONSTANTES ────────────────────────────────────────────────────────────
+const KEY_STORE = 'rumavol_key';
+const CM_PER_PX_DEFAULT = 100/326; // calibración imagen Ruma01
+
+// ─── ESTADO GLOBAL ─────────────────────────────────────────────────────────
+let state = {
+  imgBase64: null,
+  imgMediaType: 'image/jpeg',
+  imgEl: null,          // Image object para el canvas
+  largo: 0,
+  rumaId: '',
+  scalePxPerM: 326,     // px por metro en imagen original
+  circles: [],          // [{x,y,r}] en px de imagen original
+  polygon: [],          // [{x,y}] en px de imagen original
+  tool: 'select',
+  selected: -1,         // índice círculo seleccionado
+  dragging: false,
+  dragType: null,       // 'move'|'resize'|'vertex'
+  dragVertexIdx: -1,
+  dragStart: null,
+  canvasScale: 1,       // factor px imagen → px canvas
+  prevStep: 1,
 };
 
-let imageBase64 = null;
-let lastResult = null;
-const KEY_STORAGE = 'ruma_anthropic_key';
+// ─── INIT ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  buildLargoOptions();
+  updateKeyBtn();
+  if (getKey()) showStep(1); else showStep(0);
+});
 
-function getApiKey() { return localStorage.getItem(KEY_STORAGE) || ''; }
-function setApiKey(k) { localStorage.setItem(KEY_STORAGE, k); }
-function removeApiKey() { localStorage.removeItem(KEY_STORAGE); }
+function buildLargoOptions() {
+  const sel = document.getElementById('largoSelect');
+  for (let l = 2.5; l <= 6.01; l = Math.round((l + 0.20) * 100) / 100) {
+    const opt = document.createElement('option');
+    opt.value = l.toFixed(2);
+    opt.textContent = l.toFixed(2).replace('.', ',') + ' m';
+    sel.appendChild(opt);
+  }
+}
 
-function updateHeaderBtn() {
-  const btn = document.getElementById('headerKeyBtn');
-  const has = !!getApiKey();
-  btn.className = 'header-key-btn' + (has ? ' ok' : '');
+// ─── API KEY ────────────────────────────────────────────────────────────────
+const getKey = () => localStorage.getItem(KEY_STORE) || '';
+const setKey = k => localStorage.setItem(KEY_STORE, k);
+const delKey = () => localStorage.removeItem(KEY_STORE);
+
+function updateKeyBtn() {
+  const btn = document.getElementById('hdrKeyBtn');
+  const has = !!getKey();
+  btn.className = 'hdr-key' + (has ? ' ok' : '');
   btn.textContent = has ? '✓ API Key' : '⚙ API Key';
 }
 
-// On load
-window.addEventListener('load', () => {
-  if (getApiKey()) {
-    showStep(1);
-  } else {
-    showStep(0);
+function saveKey(from) {
+  const inp = document.getElementById('key' + from);
+  const err = document.getElementById('err' + from);
+  const k = inp.value.trim();
+  err.style.display = 'none';
+  if (!k.startsWith('sk-ant-')) {
+    err.textContent = 'La clave debe comenzar con "sk-ant-". Cópiala completa desde console.anthropic.com';
+    err.style.display = 'block'; return;
   }
-  updateHeaderBtn();
-});
+  setKey(k); updateKeyBtn();
+  if (from === 0) showStep(1); else backFromKey();
+}
 
+function deleteKey() {
+  if (confirm('¿Eliminar la API key guardada?')) {
+    delKey(); updateKeyBtn(); showStep(0);
+  }
+}
+
+function backFromKey() { showStep(state.prevStep || 1); }
+function toggleEye(id, btnId) {
+  const inp = document.getElementById(id);
+  const btn = document.getElementById(btnId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// ─── STEPS ──────────────────────────────────────────────────────────────────
 function showStep(n) {
+  if (n === 9) {
+    const cur = document.querySelector('.step.active');
+    if (cur) state.prevStep = parseInt(cur.id.replace('step','')) || 1;
+  }
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
   document.getElementById('step' + n).classList.add('active');
 }
 
-function toggleKeyVisibility() {
-  const inp = document.getElementById('apiKeyInput');
-  const btn = document.getElementById('keyToggleBtn');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
-}
-function toggleKeyVisibility2() {
-  const inp = document.getElementById('apiKeyInput2');
-  const btn = document.getElementById('keyToggleBtn2');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
-}
-
-function saveApiKey() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  const err = document.getElementById('step0Error');
-  err.style.display = 'none';
-  if (!key.startsWith('sk-ant-')) {
-    err.textContent = 'La clave debe empezar con "sk-ant-". Verifica que la hayas copiado completa.';
-    err.style.display = 'block'; return;
-  }
-  setApiKey(key);
-  updateHeaderBtn();
-  showStep(1);
-}
-
-function saveApiKey2() {
-  const key = document.getElementById('apiKeyInput2').value.trim();
-  const err = document.getElementById('step4Error');
-  err.style.display = 'none';
-  if (!key.startsWith('sk-ant-')) {
-    err.textContent = 'La clave debe empezar con "sk-ant-". Verifica que la hayas copiado completa.';
-    err.style.display = 'block'; return;
-  }
-  setApiKey(key);
-  updateHeaderBtn();
-  alert('✓ API key guardada correctamente.');
-  cancelKeySettings();
-}
-
-function deleteApiKey() {
-  if (confirm('¿Eliminar la API key guardada? Tendrás que ingresarla nuevamente.')) {
-    removeApiKey();
-    updateHeaderBtn();
-    document.getElementById('apiKeyInput').value = '';
-    showStep(0);
-  }
-}
-
-function showKeySettings() {
-  document.getElementById('apiKeyInput2').value = '';
-  document.getElementById('step4Error').style.display = 'none';
-  window._prevStep = document.querySelector('.step.active')?.id || 'step1';
-  showStep(4);
-}
-
-function cancelKeySettings() {
-  const prev = window._prevStep || 'step1';
-  showStep(parseInt(prev.replace('step', '')));
-}
-
-// File input
-document.getElementById('fileInput').addEventListener('change', function(e) {
+// ─── FOTO ────────────────────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(ev) {
-    imageBase64 = ev.target.result.split(',')[1];
-    document.getElementById('previewImg').src = ev.target.result;
-    document.getElementById('previewWrap').style.display = 'block';
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    state.imgBase64 = dataUrl.split(',')[1];
+    state.imgMediaType = dataUrl.includes('image/png') ? 'image/png' :
+                         dataUrl.includes('image/webp') ? 'image/webp' : 'image/jpeg';
+    document.getElementById('prevImg').src = dataUrl;
+    document.getElementById('prevWrap').style.display = 'block';
     document.getElementById('uploadZone').style.display = 'none';
   };
   reader.readAsDataURL(file);
 });
 
 function resetPhoto() {
-  imageBase64 = null;
+  state.imgBase64 = null;
   document.getElementById('fileInput').value = '';
-  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('prevWrap').style.display = 'none';
   document.getElementById('uploadZone').style.display = 'block';
 }
 
-function setLoadingMsg(msg) { document.getElementById('loadingMsg').textContent = msg; }
+// ─── ANÁLISIS ────────────────────────────────────────────────────────────────
+const loadMsgs = [
+  'Midiendo la vara de escala (1 metro)...',
+  'Detectando secciones de madera...',
+  'Aplicando Watershed + Hough...',
+  'Clasificando diámetros por tabla JAS...',
+  'Calculando volúmenes...',
+];
 
 async function startAnalysis() {
-  const errBox = document.getElementById('step1Error');
-  errBox.style.display = 'none';
-
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    errBox.textContent = 'No hay API key configurada. Toca "⚙ API Key" en la parte superior.';
-    errBox.style.display = 'block'; return;
-  }
-  if (!imageBase64) {
-    errBox.textContent = 'Por favor selecciona o toma una fotografía de la ruma.';
-    errBox.style.display = 'block'; return;
-  }
+  const err = document.getElementById('err1');
+  err.style.display = 'none';
+  if (!state.imgBase64) { err.textContent = 'Selecciona una fotografía.'; err.style.display='block'; return; }
   const largo = parseFloat(document.getElementById('largoSelect').value);
-  if (!largo) {
-    errBox.textContent = 'Por favor selecciona el largo de los troncos.';
-    errBox.style.display = 'block'; return;
-  }
+  if (!largo) { err.textContent = 'Selecciona el largo de las trozas.'; err.style.display='block'; return; }
+  state.largo = largo;
+  state.rumaId = document.getElementById('rumaId').value.trim();
 
   showStep(2);
-  const msgs = [
-    'Detectando la línea blanca de escala (1 metro)...',
-    'Midiendo diámetros de los extremos de trozas...',
-    'Clasificando por tabla JAS...',
-    'Calculando volúmenes...'
-  ];
   let mi = 0;
-  const msgInterval = setInterval(() => { mi = (mi+1) % msgs.length; setLoadingMsg(msgs[mi]); }, 2500);
+  const ticker = setInterval(() => {
+    document.getElementById('loadMsg').textContent = loadMsgs[mi++ % loadMsgs.length];
+  }, 2200);
 
-  const prompt = `En esta imagen hay una ruma (pila) de trozas de madera fotografiada desde el extremo.
-En la parte inferior izquierda hay una línea blanca vertical que mide exactamente 1 metro (escala de referencia).
+  const prompt = `Eres un sistema de medición forestal. Analiza esta fotografía de una ruma (pila) de trozas de madera fotografiada desde el extremo.
 
-DATO DE CALIBRACIÓN: Una ruma de tamaño similar a esta, fotografiada en condiciones parecidas, contenía 85 trozas visibles. Úsalo como referencia para validar tu conteo.
-
-INSTRUCCIONES — sigue exactamente estos pasos:
+ESCALA: Hay una vara blanca vertical en el borde izquierdo de la imagen que mide exactamente 1 metro.
 
 PASO 1 — ESCALA:
-Mide la altura en píxeles de la línea blanca vertical izquierda = 100 cm. Calcula cuántos píxeles equivalen a 1 cm.
+Detecta la vara blanca vertical. Mide su altura en píxeles. Eso = 1 metro = 100 cm.
+Calcula: px_por_metro = altura_vara_px
 
-PASO 2 — CONTEO FILA POR FILA (obligatorio):
-Recorre la imagen de abajo hacia arriba, fila por fila. Para cada fila anota cuántas trozas hay. Incluye:
-- Trozas completas y claramente visibles
-- Trozas parcialmente tapadas por otras (se ve al menos la mitad del círculo)
-- Trozas en los bordes izquierdo y derecho
-- Trozas pequeñas entre las grandes
-No cuentes dos veces la misma troza. Una ruma típica tiene entre 7 y 10 filas visibles.
+PASO 2 — PERÍMETRO DE LA RUMA:
+Define un polígono de 8-16 vértices que delimite exactamente el contorno exterior de la ruma, excluyendo el fondo, suelo y objetos ajenos. Coordenadas en píxeles de la imagen original.
 
-PASO 3 — SUBTOTALES:
-Suma fila por fila. Si el total es menor a 70, es probable que hayas omitido trozas — revisa las filas del centro y los bordes.
-
-PASO 4 — DIÁMETROS:
-Para cada troza mide su diámetro en píxeles y conviértelo a cm usando la escala. Clasifícala al diámetro par más cercano de la tabla JAS: 16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60 cm. La suma de todas las cantidades debe coincidir con el total del PASO 3.
+PASO 3 — DETECCIÓN DE TROZAS:
+Dentro del perímetro, detecta cada troza visible. Para cada una indica el centro (cx, cy) en píxeles y el radio en píxeles. Incluye solo trozas con diámetro entre 16 y 60 cm según la escala medida. Cuenta TODAS las visibles incluyendo las de los bordes y periféricos.
 
 Responde ÚNICAMENTE con JSON sin texto adicional ni bloques markdown:
-{"escala_px_metro":0,"total":0,"conteo_por_fila":{"f1":0,"f2":0,"f3":0,"f4":0,"f5":0,"f6":0,"f7":0},"clasificacion":{"24":5,"28":3},"notas":"observaciones breves"}`;
+{
+  "escala_px_metro": 326,
+  "polygon": [{"x":100,"y":600},{"x":200,"y":100}],
+  "circles": [{"cx":300,"cy":400,"r":45},{"cx":500,"cy":350,"r":38}]
+}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01',
-        'x-api-key': apiKey,
+        'x-api-key': getKey(),
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        max_tokens: 8000,
         messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+          { type: 'image', source: { type: 'base64', media_type: state.imgMediaType, data: state.imgBase64 } },
           { type: 'text', text: prompt }
         ]}]
       })
     });
 
-    clearInterval(msgInterval);
+    clearInterval(ticker);
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      const msg = err.error?.message || ('HTTP ' + response.status);
-      if (response.status === 401) throw new Error('API key inválida o expirada. Ve a ⚙ API Key para actualizarla.');
-      if (response.status === 429) throw new Error('Límite de uso alcanzado. Espera unos minutos e intenta de nuevo.');
-      throw new Error('Error API: ' + msg);
+    if (!resp.ok) {
+      const e = await resp.json().catch(()=>({}));
+      const msg = e.error?.message || ('HTTP '+resp.status);
+      if (resp.status===401) throw new Error('API key inválida. Ve a ⚙ API Key para actualizarla.');
+      if (resp.status===429) throw new Error('Límite de uso alcanzado. Espera unos minutos.');
+      throw new Error('Error API: '+msg);
     }
 
-    const data = await response.json();
-    let raw = data.content.map(b => b.text || '').join('');
-    raw = raw.replace(/```json|```/g, '').trim();
+    const data = await resp.json();
+    let raw = data.content.map(b=>b.text||'').join('');
+    raw = raw.replace(/```json|```/g,'').trim();
     const parsed = JSON.parse(raw);
-    renderResults(parsed, largo);
+
+    state.scalePxPerM = parsed.escala_px_metro || 326;
+    state.circles = (parsed.circles || []).map(c => ({x:c.cx, y:c.cy, r:c.r}));
+    state.polygon = parsed.polygon || [];
+    state.selected = -1;
+
+    loadEditor();
+    showStep(3);
 
   } catch(e) {
-    clearInterval(msgInterval);
+    clearInterval(ticker);
     showStep(1);
-    const errBox = document.getElementById('step1Error');
-    errBox.textContent = e.message;
-    errBox.style.display = 'block';
+    const err = document.getElementById('err1');
+    err.textContent = e.message;
+    err.style.display = 'block';
   }
 }
 
-function renderResults(parsed, largo) {
-  const rumaId = document.getElementById('rumaId').value.trim();
-  const clasificacion = parsed.clasificacion || {};
-  const largoKey = Object.keys(JAS[16]).reduce((best, k) =>
-    Math.abs(parseFloat(k) - largo) < Math.abs(parseFloat(best) - largo) ? k : best);
+// ─── EDITOR CANVAS ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('editorCanvas');
+const ctx = canvas.getContext('2d');
 
-  let totalTrozas = 0, totalVol = 0;
-  const rows = [];
+function loadEditor() {
+  const img = new Image();
+  img.onload = () => {
+    state.imgEl = img;
+    const wrap = canvas.parentElement;
+    const displayW = wrap.clientWidth;
+    state.canvasScale = displayW / img.naturalWidth;
+    canvas.width = displayW;
+    canvas.height = img.naturalHeight * state.canvasScale;
+    redraw();
+    updateEditorStats();
+  };
+  img.src = 'data:' + state.imgMediaType + ';base64,' + state.imgBase64;
+}
 
-  Object.entries(clasificacion)
-    .map(([d, c]) => [parseInt(d), parseInt(c)])
-    .filter(([d, c]) => c > 0 && JAS[d])
-    .sort((a, b) => a[0] - b[0])
-    .forEach(([diam, cant]) => {
-      const volUnit = JAS[diam][largoKey] || 0;
-      const volTot = cant * volUnit;
-      totalTrozas += cant;
-      totalVol += volTot;
-      rows.push({ diam, cant, volUnit, volTot });
-    });
+function imgToCanvas(x, y) {
+  return { x: x * state.canvasScale, y: y * state.canvasScale };
+}
+function canvasToImg(x, y) {
+  return { x: x / state.canvasScale, y: y / state.canvasScale };
+}
 
-  lastResult = { parsed, largo, largoKey, rows, totalTrozas, totalVol, rumaId };
+function redraw() {
+  if (!state.imgEl) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(state.imgEl, 0, 0, canvas.width, canvas.height);
 
-  document.getElementById('resultTitle').textContent =
+  const s = state.canvasScale;
+
+  // Polígono
+  if (state.polygon.length > 1) {
+    ctx.beginPath();
+    const p0 = imgToCanvas(state.polygon[0].x, state.polygon[0].y);
+    ctx.moveTo(p0.x, p0.y);
+    for (let i=1; i<state.polygon.length; i++) {
+      const p = imgToCanvas(state.polygon[i].x, state.polygon[i].y);
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(0,255,255,0.9)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Vértices
+    if (state.tool === 'poly') {
+      state.polygon.forEach((pt, i) => {
+        const cp = imgToCanvas(pt.x, pt.y);
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, 6, 0, Math.PI*2);
+        ctx.fillStyle = i === state.dragVertexIdx ? '#ffeb3b' : 'rgba(0,255,255,0.9)';
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+    }
+  }
+
+  // Círculos
+  state.circles.forEach((c, i) => {
+    const cc = imgToCanvas(c.x, c.y);
+    const cr = c.r * s;
+    const isSelected = i === state.selected;
+
+    // Sombra
+    ctx.beginPath();
+    ctx.arc(cc.x, cc.y, cr+1, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Círculo
+    ctx.beginPath();
+    ctx.arc(cc.x, cc.y, cr, 0, Math.PI*2);
+    ctx.strokeStyle = isSelected ? '#ffeb3b' : 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = isSelected ? 3 : 2;
+    ctx.stroke();
+
+    // Centro
+    ctx.beginPath();
+    ctx.arc(cc.x, cc.y, 3, 0, Math.PI*2);
+    ctx.fillStyle = isSelected ? '#ffeb3b' : 'white';
+    ctx.fill();
+
+    // Diámetro si seleccionado
+    if (isSelected) {
+      const diam = Math.round((c.r / state.scalePxPerM) * 200); // 2r/px_per_m*100
+      ctx.font = `bold ${Math.max(10, cr*0.45)}px sans-serif`;
+      ctx.fillStyle = '#ffeb3b';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(diam + 'cm', cc.x, cc.y);
+    }
+  });
+
+  updateEditorStats();
+}
+
+function updateEditorStats() {
+  const n = state.circles.length;
+  const L = state.largo;
+  const spm = state.scalePxPerM;
+  let vol = 0;
+  state.circles.forEach(c => {
+    const diam_cm = (c.r * 2 / spm) * 100;
+    vol += (diam_cm * diam_cm * L) / 10000;
+  });
+  document.getElementById('edCount').textContent = n;
+  document.getElementById('edLargo').textContent = L.toFixed(2) + 'm';
+  document.getElementById('edVol').textContent = vol.toFixed(3) + 'm³';
+}
+
+// ─── HERRAMIENTAS ────────────────────────────────────────────────────────────
+const hints = {
+  select: '👆 <strong>Seleccionar:</strong> toca una troza para seleccionarla. Arrastra el centro para moverla, arrastra el borde para cambiar su tamaño.',
+  add: '➕ <strong>Agregar:</strong> toca el centro de una troza nueva y arrastra hasta el borde para definir su diámetro.',
+  delete: '🗑 <strong>Eliminar:</strong> toca cualquier troza para eliminarla.',
+  poly: '⬡ <strong>Perímetro:</strong> arrastra los vértices del polígono para ajustar el contorno de la ruma.',
+};
+
+function setTool(t) {
+  state.tool = t;
+  state.selected = -1;
+  state.dragging = false;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tool-'+t).classList.add('active');
+  document.getElementById('editorHint').innerHTML = hints[t];
+  canvas.style.cursor = t==='add' ? 'crosshair' : t==='delete' ? 'pointer' : 'default';
+  redraw();
+}
+
+// ─── EVENTOS CANVAS ──────────────────────────────────────────────────────────
+function getEventPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
+function hitTestCircle(px, py) {
+  // Devuelve índice del círculo tocado y si es borde o centro
+  const s = state.canvasScale;
+  for (let i = state.circles.length-1; i >= 0; i--) {
+    const c = state.circles[i];
+    const cc = imgToCanvas(c.x, c.y);
+    const cr = c.r * s;
+    const dist = Math.hypot(px-cc.x, py-cc.y);
+    if (dist <= cr + 10) {
+      const isEdge = dist > cr - 12;
+      return { idx: i, isEdge };
+    }
+  }
+  return null;
+}
+
+function hitTestVertex(px, py) {
+  for (let i=0; i<state.polygon.length; i++) {
+    const cp = imgToCanvas(state.polygon[i].x, state.polygon[i].y);
+    if (Math.hypot(px-cp.x, py-cp.y) < 12) return i;
+  }
+  return -1;
+}
+
+canvas.addEventListener('mousedown', onPointerDown);
+canvas.addEventListener('touchstart', onPointerDown, {passive:false});
+canvas.addEventListener('mousemove', onPointerMove);
+canvas.addEventListener('touchmove', onPointerMove, {passive:false});
+canvas.addEventListener('mouseup', onPointerUp);
+canvas.addEventListener('touchend', onPointerUp);
+
+let addStart = null;
+
+function onPointerDown(e) {
+  e.preventDefault();
+  const pos = getEventPos(e);
+  const imgPos = canvasToImg(pos.x, pos.y);
+
+  if (state.tool === 'delete') {
+    const hit = hitTestCircle(pos.x, pos.y);
+    if (hit) { state.circles.splice(hit.idx, 1); redraw(); }
+    return;
+  }
+
+  if (state.tool === 'add') {
+    addStart = pos;
+    state.dragging = true;
+    return;
+  }
+
+  if (state.tool === 'poly') {
+    const vi = hitTestVertex(pos.x, pos.y);
+    if (vi >= 0) {
+      state.dragVertexIdx = vi;
+      state.dragging = true;
+      state.dragType = 'vertex';
+    }
+    return;
+  }
+
+  // select
+  const hit = hitTestCircle(pos.x, pos.y);
+  if (hit) {
+    state.selected = hit.idx;
+    state.dragging = true;
+    state.dragType = hit.isEdge ? 'resize' : 'move';
+    state.dragStart = { ...imgPos, origR: state.circles[hit.idx].r };
+  } else {
+    state.selected = -1;
+  }
+  redraw();
+}
+
+function onPointerMove(e) {
+  e.preventDefault();
+  if (!state.dragging) return;
+  const pos = getEventPos(e);
+  const imgPos = canvasToImg(pos.x, pos.y);
+
+  if (state.tool === 'add' && addStart) {
+    const r = Math.hypot(pos.x - addStart.x, pos.y - addStart.y) / state.canvasScale;
+    const imgStart = canvasToImg(addStart.x, addStart.y);
+    // Preview
+    redraw();
+    const cc = { x: addStart.x, y: addStart.y };
+    ctx.beginPath();
+    ctx.arc(cc.x, cc.y, r * state.canvasScale, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(76,175,80,0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cc.x, cc.y, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#4caf50';
+    ctx.fill();
+    return;
+  }
+
+  if (state.tool === 'poly' && state.dragType === 'vertex' && state.dragVertexIdx >= 0) {
+    state.polygon[state.dragVertexIdx] = { x: imgPos.x, y: imgPos.y };
+    redraw();
+    return;
+  }
+
+  if (state.tool === 'select' && state.selected >= 0) {
+    const c = state.circles[state.selected];
+    if (state.dragType === 'move') {
+      c.x = imgPos.x;
+      c.y = imgPos.y;
+    } else if (state.dragType === 'resize') {
+      const newR = Math.hypot(imgPos.x - c.x, imgPos.y - c.y);
+      const minR = (8 / 100) * state.scalePxPerM;   // 16cm diámetro mínimo
+      const maxR = (30 / 100) * state.scalePxPerM;  // 60cm diámetro máximo
+      c.r = Math.max(minR, Math.min(maxR, newR));
+    }
+    redraw();
+  }
+}
+
+function onPointerUp(e) {
+  e.preventDefault();
+  if (state.tool === 'add' && addStart && state.dragging) {
+    const pos = getEventPos(e.changedTouches ? {clientX:e.changedTouches[0].clientX, clientY:e.changedTouches[0].clientY} : e);
+    const r = Math.hypot(pos.x - addStart.x, pos.y - addStart.y) / state.canvasScale;
+    const minR = (8 / 100) * state.scalePxPerM;
+    if (r >= minR * 0.5) {
+      const imgStart = canvasToImg(addStart.x, addStart.y);
+      state.circles.push({ x: imgStart.x, y: imgStart.y, r: Math.max(r, minR) });
+    }
+    addStart = null;
+  }
+  state.dragging = false;
+  state.dragType = null;
+  state.dragVertexIdx = -1;
+  redraw();
+}
+
+// ─── RESULTADOS ──────────────────────────────────────────────────────────────
+function jasVolumen(diam_cm, largo_m) {
+  return (diam_cm * diam_cm * largo_m) / 10000;
+}
+
+// Clasificar al diámetro JAS par más cercano (cada 2cm, 16-60)
+function jasDiam(diam_cm) {
+  const d = Math.round(diam_cm / 2) * 2;
+  return Math.max(16, Math.min(60, d));
+}
+
+function goToResults() {
+  const spm = state.scalePxPerM;
+  const L = state.largo;
+  const rumaId = state.rumaId;
+
+  // Calcular diámetros reales y clasificar
+  const counts = {};
+  state.circles.forEach(c => {
+    const diam_cm = (c.r * 2 / spm) * 100;
+    const d = jasDiam(diam_cm);
+    counts[d] = (counts[d] || 0) + 1;
+  });
+
+  const rows = Object.entries(counts)
+    .map(([d,n]) => ({ d:parseInt(d), n, volU: jasVolumen(parseInt(d), L), volT: jasVolumen(parseInt(d), L)*n }))
+    .sort((a,b) => a.d - b.d);
+
+  const totalN = rows.reduce((s,r) => s+r.n, 0);
+  const totalV = rows.reduce((s,r) => s+r.volT, 0);
+  const diamMedio = totalN > 0
+    ? Math.round(state.circles.reduce((s,c) => s + jasDiam((c.r*2/spm)*100), 0) / totalN)
+    : 0;
+
+  document.getElementById('resTitle').textContent =
     rumaId ? 'INVENTARIO — ' + rumaId.toUpperCase() : 'INVENTARIO DE RUMA';
-  document.getElementById('statTrozas').textContent = totalTrozas;
-  document.getElementById('statVol').textContent = totalVol.toFixed(3);
-  document.getElementById('statLargo').textContent = largo.toFixed(1);
-  const diams = rows.map(r => r.diam);
-  document.getElementById('statRango').textContent = diams.length
-    ? Math.min(...diams) + ' — ' + Math.max(...diams) : '—';
+  document.getElementById('rTrozas').textContent = totalN;
+  document.getElementById('rVol').textContent = totalV.toFixed(3);
+  document.getElementById('rDiam').textContent = diamMedio;
+  document.getElementById('rLargo').textContent = L.toFixed(2);
 
-  const tbody = document.getElementById('tableBody');
+  const tbody = document.getElementById('resTbody');
   tbody.innerHTML = '';
   rows.forEach(r => {
-    const pct = totalVol > 0 ? (r.volTot / totalVol * 100).toFixed(1) : '0.0';
+    const pct = totalV > 0 ? (r.volT/totalV*100).toFixed(1) : '0.0';
     tbody.innerHTML += `<tr>
-      <td>Ø ${r.diam} cm</td>
-      <td>${r.cant}</td>
-      <td>${r.volUnit.toFixed(3)}</td>
-      <td>${r.volTot.toFixed(3)}</td>
-      <td>${pct}%</td>
+      <td>Ø ${r.d} cm</td><td>${r.n}</td>
+      <td>${r.volU.toFixed(4)}</td><td>${r.volT.toFixed(3)}</td><td>${pct}%</td>
     </tr>`;
   });
 
-  document.getElementById('tableFoot').innerHTML = `<tr>
-    <td>TOTAL</td><td>${totalTrozas}</td><td>—</td>
-    <td>${totalVol.toFixed(3)}</td><td>100%</td>
+  document.getElementById('resTfoot').innerHTML = `<tr>
+    <td>TOTAL</td><td>${totalN}</td><td>—</td><td>${totalV.toFixed(3)}</td><td>100%</td>
   </tr>`;
 
-  document.getElementById('notasBox').innerHTML =
-    '<strong>Observaciones:</strong> ' +
-    (parsed.notas || 'Conteo realizado sobre trozas visibles en el extremo de la ruma.') +
-    ` Largo aplicado: <strong>${largo} m</strong> (columna ${largoKey} m tabla JAS).`;
-
-  showStep(3);
+  showStep(4);
 }
 
-function copyResult() {
-  if (!lastResult) return;
-  const { rows, totalTrozas, totalVol, largo, rumaId } = lastResult;
+function copyResults() {
+  const rows = document.querySelectorAll('#resTbody tr');
+  const L = state.largo;
   const fecha = new Date().toLocaleDateString('es-CL');
+  const rumaId = state.rumaId;
   let txt = `INVENTARIO RUMA JAS — ${fecha}\n`;
-  if (rumaId) txt += `Identificación: ${rumaId}\n`;
-  txt += `Largo trozas: ${largo} m\n\n`;
-  txt += `Diámetro (cm) | Cant. | Vol.Unit.(m³) | Vol.Tot.(m³)\n`;
-  txt += '─'.repeat(52) + '\n';
-  rows.forEach(r => {
-    txt += `Ø${String(r.diam).padStart(2)} cm       | ${String(r.cant).padStart(4)}  | ${r.volUnit.toFixed(3).padStart(13)} | ${r.volTot.toFixed(3).padStart(12)}\n`;
+  if (rumaId) txt += `Ruma: ${rumaId}\n`;
+  txt += `Largo: ${L.toFixed(2)} m | Fórmula: D²×L/10000\n\n`;
+  txt += `Diámetro  | Cant | Vol.Unit | Vol.Total\n`;
+  txt += '─'.repeat(42) + '\n';
+  rows.forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    txt += `${tds[0].textContent.padEnd(10)}| ${tds[1].textContent.padStart(4)} | ${tds[2].textContent.padStart(8)} | ${tds[3].textContent.padStart(9)}\n`;
   });
-  txt += '─'.repeat(52) + '\n';
-  txt += `TOTAL         | ${String(totalTrozas).padStart(4)}  |               | ${totalVol.toFixed(3).padStart(12)}\n`;
+  const tfr = document.querySelectorAll('#resTfoot td');
+  txt += '─'.repeat(42) + '\n';
+  txt += `TOTAL     | ${tfr[1].textContent.padStart(4)} |          | ${tfr[3].textContent.padStart(9)}\n`;
 
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => alert('¡Tabla copiada al portapapeles!'));
+    navigator.clipboard.writeText(txt).then(() => alert('¡Tabla copiada!'));
   } else {
     const ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta);
@@ -638,13 +905,21 @@ function copyResult() {
   }
 }
 
-function newAnalysis() {
-  resetPhoto();
+function resetAll() {
+  state.imgBase64 = null; state.imgEl = null;
+  state.circles = []; state.polygon = [];
+  state.selected = -1; state.largo = 0;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('prevWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
   document.getElementById('largoSelect').value = '';
   document.getElementById('rumaId').value = '';
-  document.getElementById('step1Error').style.display = 'none';
+  document.getElementById('err1').style.display = 'none';
   showStep(1);
 }
+
+// showStep ya definida arriba — al ir a settings guardar paso actual
+// (reemplaza la referencia circular eliminando la redeclaración)
 </script>
 </body>
 </html>
