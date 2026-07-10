@@ -542,11 +542,14 @@ function loadEditor() {
   const img = new Image();
   img.onload = () => {
     state.imgEl = img;
-    const wrap = canvas.parentElement;
-    const displayW = wrap.clientWidth;
-    state.canvasScale = displayW / img.naturalWidth;
-    canvas.width = displayW;
-    canvas.height = img.naturalHeight * state.canvasScale;
+    // Canvas interno = resolución original de la imagen (coordenadas 1:1)
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    // CSS lo escala visualmente al ancho del contenedor
+    canvas.style.width  = '100%';
+    canvas.style.height = 'auto';
+    // canvasScale = 1 porque dibujamos en coordenadas originales
+    state.canvasScale = 1;
     redraw();
     updateEditorStats();
   };
@@ -578,8 +581,8 @@ function redraw() {
     }
     ctx.closePath();
     ctx.strokeStyle = 'rgba(0,255,255,0.9)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6,3]);
+    ctx.lineWidth = Math.max(2, canvas.width*0.002);
+    ctx.setLineDash([canvas.width*0.005, canvas.width*0.003]);
     ctx.stroke();
     ctx.setLineDash([]);
     // Vértices
@@ -587,11 +590,11 @@ function redraw() {
       state.polygon.forEach((pt, i) => {
         const cp = imgToCanvas(pt.x, pt.y);
         ctx.beginPath();
-        ctx.arc(cp.x, cp.y, 6, 0, Math.PI*2);
+        ctx.arc(cp.x, cp.y, Math.max(8, canvas.width*0.008), 0, Math.PI*2);
         ctx.fillStyle = i === state.dragVertexIdx ? '#ffeb3b' : 'rgba(0,255,255,0.9)';
         ctx.fill();
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = Math.max(1, canvas.width*0.001);
         ctx.stroke();
       });
     }
@@ -607,26 +610,27 @@ function redraw() {
     ctx.beginPath();
     ctx.arc(cc.x, cc.y, cr+1, 0, Math.PI*2);
     ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = Math.max(3, canvas.width*0.003);
     ctx.stroke();
 
     // Círculo
     ctx.beginPath();
     ctx.arc(cc.x, cc.y, cr, 0, Math.PI*2);
+    const lw = Math.max(2, canvas.width*0.002);
     ctx.strokeStyle = isSelected ? '#ffeb3b' : 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = isSelected ? 3 : 2;
+    ctx.lineWidth = isSelected ? lw*1.5 : lw;
     ctx.stroke();
 
     // Centro
     ctx.beginPath();
-    ctx.arc(cc.x, cc.y, 3, 0, Math.PI*2);
+    ctx.arc(cc.x, cc.y, Math.max(4, cr*0.06), 0, Math.PI*2);
     ctx.fillStyle = isSelected ? '#ffeb3b' : 'white';
     ctx.fill();
 
     // Diámetro si seleccionado
     if (isSelected) {
       const diam = Math.round((c.r / state.scalePxPerM) * 200); // 2r/px_per_m*100
-      ctx.font = `bold ${Math.max(10, cr*0.45)}px sans-serif`;
+      ctx.font = `bold ${Math.max(12, Math.min(cr*0.35, 28))}px sans-serif`;
       ctx.fillStyle = '#ffeb3b';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -672,14 +676,16 @@ function setTool(t) {
 
 // ─── EVENTOS CANVAS ──────────────────────────────────────────────────────────
 function getEventPos(e) {
+  // Convertir coordenadas de pantalla → coordenadas del canvas interno (= imagen original)
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  // scaleX/Y convierte px de pantalla a px del canvas interno (resolución original)
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
   return {
     x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top) * scaleY
+    y: (clientY - rect.top)  * scaleY
   };
 }
 
@@ -691,8 +697,9 @@ function hitTestCircle(px, py) {
     const cc = imgToCanvas(c.x, c.y);
     const cr = c.r * s;
     const dist = Math.hypot(px-cc.x, py-cc.y);
-    if (dist <= cr + 10) {
-      const isEdge = dist > cr - 12;
+    const edgeTol = Math.max(12, cr*0.12);
+    if (dist <= cr + edgeTol) {
+      const isEdge = dist > cr - edgeTol*1.5;
       return { idx: i, isEdge };
     }
   }
@@ -702,7 +709,7 @@ function hitTestCircle(px, py) {
 function hitTestVertex(px, py) {
   for (let i=0; i<state.polygon.length; i++) {
     const cp = imgToCanvas(state.polygon[i].x, state.polygon[i].y);
-    if (Math.hypot(px-cp.x, py-cp.y) < 12) return i;
+    if (Math.hypot(px-cp.x, py-cp.y) < Math.max(15, canvas.width*0.012)) return i;
   }
   return -1;
 }
