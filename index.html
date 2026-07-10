@@ -466,22 +466,584 @@ async function startAnalysis() {
 
 ESCALA: Hay una vara blanca vertical en el borde izquierdo de la imagen que mide exactamente 1 metro.
 
+MUY IMPORTANTE: Todas las coordenadas deben ser NORMALIZADAS entre 0.0 y 1.0.
+- x=0.0 es el borde izquierdo, x=1.0 es el borde derecho
+- y=0.0 es el borde superior, y=1.0 es el borde inferior
+- r (radio) se normaliza como fracción del ANCHO de la imagen
+
 PASO 1 — ESCALA:
-Detecta la vara blanca vertical. Mide su altura en píxeles. Eso = 1 metro = 100 cm.
-Calcula: px_por_metro = altura_vara_px
+Detecta la vara blanca vertical en el borde izquierdo.
+escala_norm = altura_vara_px / alto_imagen_px  (valor entre 0.0 y 1.0)
 
-PASO 2 — PERÍMETRO DE LA RUMA:
-Define un polígono de 8-16 vértices que delimite exactamente el contorno exterior de la ruma, excluyendo el fondo, suelo y objetos ajenos. Coordenadas en píxeles de la imagen original.
+PASO 2 — PERÍMETRO:
+Polígono de 8-16 vértices alrededor de la ruma. Coordenadas normalizadas 0.0-1.0.
 
-PASO 3 — DETECCIÓN DE TROZAS:
-Dentro del perímetro, detecta cada troza visible. Para cada una indica el centro (cx, cy) en píxeles y el radio en píxeles. Incluye solo trozas con diámetro entre 16 y 60 cm según la escala medida. Cuenta TODAS las visibles incluyendo las de los bordes y periféricos.
+PASO 3 — TROZAS:
+Detecta TODAS las trozas visibles. Para cada una:
+  cx, cy: centro normalizado (0.0-1.0)
+  r: radio normalizado = radio_px / ancho_imagen_px
 
-Responde ÚNICAMENTE con JSON sin texto adicional ni bloques markdown:
-{
-  "escala_px_metro": 326,
-  "polygon": [{"x":100,"y":600},{"x":200,"y":100}],
-  "circles": [{"cx":300,"cy":400,"r":45},{"cx":500,"cy":350,"r":38}]
-}`;
+Responde ÚNICAMENTE con JSON, sin texto ni bloques markdown:
+{"escala_norm":0.42,"polygon":[{"x":0.05,"y":0.92},{"x":0.95,"y":0.08}],"circles":[{"cx":0.25,"cy":0.60,"r":0.032}]}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'x-api-key': getKey(),
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: state.imgMediaType, data: state.imgBase64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      })
+    });
+
+    clearInterval(ticker);
+
+    if (!resp.ok) {
+      const e = await resp.json().catch(()=>({}));
+      const msg = e.error?.message || ('HTTP '+resp.status);
+      if (resp.status===401) throw new Error('API key inválida. Ve a ⚙ API Key para actualizarla.');
+      if (resp.status===429) throw new Error('Límite de uso alcanzado. Espera unos minutos.');
+      throw new Error('Error API: '+msg);
+    }
+
+    const data = await resp.json();
+    let raw = data.content.map(b=>b.text||'').join('');
+    raw = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+
+    // Obtener dimensiones reales de la imagen para desnormalizar
+    const _img = new Image();
+    _img.onload = () => {
+      const IW = _img.naturalWidth;
+      const IH = _img.naturalHeight;
+      console.log('Imagen real:', IW, 'x', IH, '| escala_norm:', parsed.escala_norm);
+
+      if (parsed.escala_norm !== undefined) {
+        // Coordenadas normalizadas → convertir a px reales
+        state.scalePxPerM = parsed.escala_norm * IH;
+        state.circles = (parsed.circles || []).map(c => ({
+          x: c.cx * IW,
+          y: c.cy * IH,
+          r: c.r  * IW
+        }));
+        state.polygon = (parsed.polygon || []).map(p => ({
+          x: p.x * IW,
+          y: p.y * IH
+        }));
+      } else {
+        // Fallback px — detectar si son normalizadas por rango
+        const cirs = parsed.circles || [];
+        const maxVal = cirs.length ? Math.max(...cirs.flatMap(c=>[c.cx,c.cy])) : 999;
+        if (maxVal <= 1.5) {
+          state.scalePxPerM = (parsed.escala_px_metro || 0.42) * IH;
+          state.circles = cirs.map(c=>({x:c.cx*IW, y:c.cy*IH, r:c.r*IW}));
+          state.polygon = (parsed.polygon||[]).map(p=>({x:p.x*IW, y:p.y*IH}));
+        } else {
+          state.scalePxPerM = parsed.escala_px_metro || 326;
+          state.circles = cirs.map(c=>({x:c.cx, y:c.cy, r:c.r}));
+          state.polygon = parsed.polygon || [];
+        }
+      }
+      console.log('scalePxPerM:', state.scalePxPerM, '| círculos:', state.circles.length);
+      console.log('Primeros 3:', state.circles.slice(0,3));
+      state.selected = -1;
+      loadEditor();
+      showStep(3);
+    };
+    _img.src = 'data:' + state.imgMediaType + ';base64,' + state.imgBase64;<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a2e1a">
+<title>RumaVol — Inventario de Trozas</title>
+<style>
+:root {
+  --bg:      #0d1a0d;
+  --bg2:     #132013;
+  --bg3:     #1a2e1a;
+  --card:    #1e351e;
+  --border:  #2a4a2a;
+  --border2: #3a6a3a;
+  --green:   #4caf50;
+  --green2:  #66bb6a;
+  --green3:  #a5d6a7;
+  --text:    #e8f5e9;
+  --text2:   #a5d6a7;
+  --text3:   #5a8a5a;
+  --amber:   #ffa726;
+  --red:     #ef5350;
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --r: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden}
+
+/* HEADER */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:12px 16px;display:flex;align-items:center;gap:10px;
+  position:sticky;top:0;z-index:200}
+.hdr-icon{width:34px;height:34px;background:var(--green);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.hdr h1{font-size:16px;font-weight:700;color:var(--text)}
+.hdr p{font-size:10px;color:var(--text3);margin-top:1px}
+.hdr-key{margin-left:auto;background:none;border:1px solid var(--border2);
+  border-radius:20px;color:var(--text3);font-size:11px;padding:4px 10px;cursor:pointer;flex-shrink:0}
+.hdr-key.ok{border-color:var(--green);color:var(--green2)}
+
+/* MAIN */
+.main{padding:16px 14px 60px;max-width:520px;margin:0 auto}
+.step{display:none}.step.active{display:block}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card h3{font-size:12px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.5px;font-weight:600;margin-bottom:10px}
+
+/* FORM */
+.fg{margin-bottom:14px}
+.fg label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;font-weight:500}
+.fg input,.fg select{width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:14px;padding:9px 12px;
+  outline:none;appearance:none;-webkit-appearance:none}
+.fg input:focus,.fg select:focus{border-color:var(--green)}
+.sel-wrap{position:relative}
+.sel-arr{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--text3);font-size:11px}
+.key-wrap{position:relative}
+.key-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px}
+
+/* UPLOAD */
+.upload{border:2px dashed var(--border2);border-radius:var(--r);
+  padding:28px 16px;text-align:center;cursor:pointer;background:var(--bg2);
+  margin-bottom:14px;position:relative;transition:border-color .2s}
+.upload:active{border-color:var(--green);background:var(--bg3)}
+.upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload .ico{font-size:36px;margin-bottom:10px}
+.upload h2{font-size:15px;font-weight:600;margin-bottom:5px}
+.upload p{font-size:12px;color:var(--text3);line-height:1.5}
+.prev-wrap{position:relative;margin-bottom:14px;border-radius:var(--r);
+  overflow:hidden;border:1px solid var(--border)}
+.prev-wrap img{width:100%;display:block;max-height:260px;object-fit:cover}
+.prev-btn{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.7);
+  color:#fff;font-size:11px;border-radius:20px;padding:4px 10px;cursor:pointer;border:none}
+
+/* BUTTONS */
+.btn{width:100%;padding:13px;border-radius:var(--r);font-size:15px;font-weight:600;
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:7px;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.98);opacity:.85}
+.btn+.btn{margin-top:8px}
+.btn-primary{background:var(--green);color:#071407}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-danger{background:rgba(239,83,80,.12);color:var(--red);border:1px solid rgba(239,83,80,.3)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* INFO */
+.info{background:rgba(76,175,80,.07);border:1px solid rgba(76,175,80,.2);
+  border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text3);
+  line-height:1.6;margin-bottom:14px}
+.info strong{color:var(--green2);display:block;margin-bottom:3px;font-size:12px}
+.err{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.3);
+  border-radius:8px;padding:12px;font-size:12px;color:var(--red);
+  line-height:1.5;margin-bottom:12px}
+
+/* LOADING */
+.loading{text-align:center;padding:40px 20px}
+.spinner{width:44px;height:44px;border:3px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;
+  animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading h2{font-size:15px;margin-bottom:5px}
+.loading p{font-size:12px;color:var(--text3)}
+
+/* CANVAS EDITOR */
+.editor-wrap{position:relative;margin-bottom:12px;
+  border-radius:var(--r);overflow:hidden;border:1px solid var(--border);
+  touch-action:none;user-select:none}
+#editorCanvas{width:100%;display:block;cursor:crosshair;touch-action:none}
+.editor-toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tool-btn{padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;
+  transition:background .15s}
+.tool-btn.active{background:var(--green);color:#071407;border-color:var(--green)}
+.tool-btn:active{opacity:.8}
+.editor-hint{font-size:11px;color:var(--text3);margin-bottom:10px;
+  padding:8px 10px;background:var(--bg3);border-radius:6px;line-height:1.5}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{background:var(--bg3);border-radius:8px;padding:10px}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.stat-val{font-size:20px;font-weight:700;color:var(--green2)}
+.stat-unit{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:300px}
+thead th{background:var(--bg3);color:var(--text2);font-weight:600;
+  padding:9px 10px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+tbody td{padding:8px 10px;text-align:center;color:var(--text)}
+tbody td:first-child{text-align:left;font-weight:600;color:var(--green2)}
+tfoot td{padding:9px 10px;text-align:center;background:var(--bg3);
+  font-weight:700;color:var(--amber);border-top:2px solid var(--border2)}
+tfoot td:first-child{text-align:left}
+
+/* KEY SCREEN */
+.key-screen{text-align:center;padding:24px 0 8px}
+.key-screen .lock{font-size:48px;margin-bottom:14px}
+.key-screen h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.key-screen p{font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:18px}
+.key-steps{background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px;margin-bottom:16px;text-align:left}
+.key-steps h3{font-size:11px;color:var(--text2);font-weight:600;
+  margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+.ks{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.ks:last-child{margin-bottom:0}
+.ks-num{width:18px;height:18px;background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:10px;
+  font-weight:700;color:#071407;flex-shrink:0;margin-top:1px}
+.ks p{font-size:11px;color:var(--text3);line-height:1.5;margin:0}
+.ks a{color:var(--green2)}
+
+@media(max-width:360px){.main{padding:12px 10px 50px}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-icon">🪵</div>
+  <div>
+    <h1>RumaVol</h1>
+    <p>Inventario de trozas · Fórmula JAS</p>
+  </div>
+  <button class="hdr-key" id="hdrKeyBtn" onclick="showStep(9)">⚙ API Key</button>
+</div>
+
+<div class="main">
+
+<!-- PASO 0: API Key inicial -->
+<div class="step active" id="step0">
+  <div class="key-screen">
+    <div class="lock">🔑</div>
+    <h2>Configura tu API Key</h2>
+    <p>RumaVol usa inteligencia artificial para detectar y medir las trozas. Necesitas una API key gratuita de Anthropic.</p>
+  </div>
+  <div class="key-steps">
+    <h3>Cómo obtener tu API key</h3>
+    <div class="ks"><div class="ks-num">1</div><p>Entra a <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> y crea una cuenta gratuita</p></div>
+    <div class="ks"><div class="ks-num">2</div><p>Ve a <strong>API Keys → Create Key</strong></p></div>
+    <div class="ks"><div class="ks-num">3</div><p>Copia la clave (empieza con <strong>sk-ant-</strong>) y pégala aquí abajo</p></div>
+    <div class="ks"><div class="ks-num">4</div><p>Se guarda solo en este dispositivo</p></div>
+  </div>
+  <div class="fg">
+    <label>API Key de Anthropic</label>
+    <div class="key-wrap">
+      <input type="password" id="key0" placeholder="sk-ant-api03-..." autocomplete="off"/>
+      <button class="key-eye" onclick="toggleEye('key0','eye0')" id="eye0">👁</button>
+    </div>
+  </div>
+  <div id="err0" class="err" style="display:none"></div>
+  <button class="btn btn-primary" onclick="saveKey(0)">✓ Guardar y continuar</button>
+</div>
+
+<!-- PASO 1: Foto + parámetros -->
+<div class="step" id="step1">
+  <div id="uploadZone" class="upload">
+    <input type="file" accept="image/*" capture="environment" id="fileInput"/>
+    <div class="ico">📷</div>
+    <h2>Fotografía de la ruma</h2>
+    <p>Toca para fotografiar o elegir imagen.<br>Incluye una <strong>vara blanca vertical de 1 metro</strong> como escala en el borde izquierdo.</p>
+  </div>
+  <div id="prevWrap" class="prev-wrap" style="display:none">
+    <img id="prevImg" src="" alt=""/>
+    <button class="prev-btn" onclick="resetPhoto()">Cambiar foto</button>
+  </div>
+  <div class="info">
+    <strong>📐 Escala obligatoria</strong>
+    Una vara o jalón blanco de exactamente 1 metro en el costado izquierdo permite medir los diámetros automáticamente.
+  </div>
+  <div class="fg">
+    <label>Largo de las trozas (metros)</label>
+    <div class="sel-wrap">
+      <select id="largoSelect"><option value="">— Selecciona el largo —</option></select>
+      <span class="sel-arr">▼</span>
+    </div>
+  </div>
+  <div class="fg">
+    <label>Identificación de la ruma (opcional)</label>
+    <input type="text" id="rumaId" placeholder="Ej: Ruma 01 — Rodal Norte"/>
+  </div>
+  <div id="err1" class="err" style="display:none"></div>
+  <button class="btn btn-primary" id="btnAnalizar" onclick="startAnalysis()">🔍 Detectar trozas automáticamente</button>
+</div>
+
+<!-- PASO 2: Analizando -->
+<div class="step" id="step2">
+  <div class="loading">
+    <div class="spinner"></div>
+    <h2>Analizando imagen...</h2>
+    <p id="loadMsg">Detectando escala y midiendo diámetros</p>
+  </div>
+</div>
+
+<!-- PASO 3: Editor interactivo -->
+<div class="step" id="step3">
+  <div class="card">
+    <h3>Editor de trozas</h3>
+    <div class="editor-toolbar">
+      <button class="tool-btn active" id="tool-select" onclick="setTool('select')">👆 Seleccionar</button>
+      <button class="tool-btn" id="tool-add" onclick="setTool('add')">➕ Agregar</button>
+      <button class="tool-btn" id="tool-delete" onclick="setTool('delete')">🗑 Eliminar</button>
+      <button class="tool-btn" id="tool-poly" onclick="setTool('poly')">⬡ Perímetro</button>
+    </div>
+    <div class="editor-hint" id="editorHint">
+      👆 <strong>Seleccionar:</strong> toca una troza para seleccionarla y ajustar su diámetro arrastrando el borde.
+    </div>
+    <div class="editor-wrap">
+      <canvas id="editorCanvas"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+        <div style="font-size:10px;color:var(--text3)">TROZAS</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green2)" id="edCount">0</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+        <div style="font-size:10px;color:var(--text3)">LARGO</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green2)" id="edLargo">—</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:8px">
+        <div style="font-size:10px;color:var(--text3)">VOLUMEN</div>
+        <div style="font-size:18px;font-weight:700;color:var(--amber)" id="edVol">—</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="goToResults()">📊 Ver tabla de resultados</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="resetAll()">↩ Nueva ruma</button>
+  </div>
+</div>
+
+<!-- PASO 4: Resultados -->
+<div class="step" id="step4">
+  <div class="card">
+    <h3 id="resTitle">INVENTARIO RUMA</h3>
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-lbl">Total trozas</div><div class="stat-val" id="rTrozas">—</div><div class="stat-unit">unidades</div></div>
+      <div class="stat"><div class="stat-lbl">Volumen total</div><div class="stat-val" id="rVol">—</div><div class="stat-unit">m³ JAS</div></div>
+      <div class="stat"><div class="stat-lbl">Diámetro medio</div><div class="stat-val" id="rDiam">—</div><div class="stat-unit">cm</div></div>
+      <div class="stat"><div class="stat-lbl">Largo aplicado</div><div class="stat-val" id="rLargo">—</div><div class="stat-unit">metros</div></div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Diámetro (cm)</th><th>Cant.</th><th>Vol.Unit.(m³)</th><th>Vol.Tot.(m³)</th><th>%</th>
+      </tr></thead>
+      <tbody id="resTbody"></tbody>
+      <tfoot id="resTfoot"></tfoot>
+    </table>
+  </div>
+  <button class="btn btn-secondary" onclick="showStep(3)">✏️ Volver al editor</button>
+  <button class="btn btn-secondary" onclick="copyResults()">📋 Copiar tabla</button>
+  <button class="btn btn-secondary" onclick="resetAll()">📷 Nueva ruma</button>
+</div>
+
+<!-- PASO 9: Cambiar API Key -->
+<div class="step" id="step9">
+  <div class="key-screen">
+    <div class="lock">🔑</div>
+    <h2>Cambiar API Key</h2>
+    <p>Tu clave está guardada en este dispositivo.</p>
+  </div>
+  <div class="fg">
+    <label>Nueva API Key</label>
+    <div class="key-wrap">
+      <input type="password" id="key9" placeholder="sk-ant-api03-..." autocomplete="off"/>
+      <button class="key-eye" onclick="toggleEye('key9','eye9')" id="eye9">👁</button>
+    </div>
+  </div>
+  <div id="err9" class="err" style="display:none"></div>
+  <button class="btn btn-primary" onclick="saveKey(9)">✓ Guardar</button>
+  <button class="btn btn-danger" onclick="deleteKey()" style="margin-top:8px">🗑 Eliminar key</button>
+  <button class="btn btn-secondary" onclick="backFromKey()" style="margin-top:8px">← Volver</button>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ─── CONSTANTES ────────────────────────────────────────────────────────────
+const KEY_STORE = 'rumavol_key';
+const CM_PER_PX_DEFAULT = 100/326; // calibración imagen Ruma01
+
+// ─── ESTADO GLOBAL ─────────────────────────────────────────────────────────
+let state = {
+  imgBase64: null,
+  imgMediaType: 'image/jpeg',
+  imgEl: null,          // Image object para el canvas
+  largo: 0,
+  rumaId: '',
+  scalePxPerM: 326,     // px por metro en imagen original
+  circles: [],          // [{x,y,r}] en px de imagen original
+  polygon: [],          // [{x,y}] en px de imagen original
+  tool: 'select',
+  selected: -1,         // índice círculo seleccionado
+  dragging: false,
+  dragType: null,       // 'move'|'resize'|'vertex'
+  dragVertexIdx: -1,
+  dragStart: null,
+  canvasScale: 1,       // factor px imagen → px canvas
+  prevStep: 1,
+};
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  buildLargoOptions();
+  updateKeyBtn();
+  if (getKey()) showStep(1); else showStep(0);
+});
+
+function buildLargoOptions() {
+  const sel = document.getElementById('largoSelect');
+  for (let l = 2.5; l <= 6.01; l = Math.round((l + 0.20) * 100) / 100) {
+    const opt = document.createElement('option');
+    opt.value = l.toFixed(2);
+    opt.textContent = l.toFixed(2).replace('.', ',') + ' m';
+    sel.appendChild(opt);
+  }
+}
+
+// ─── API KEY ────────────────────────────────────────────────────────────────
+const getKey = () => localStorage.getItem(KEY_STORE) || '';
+const setKey = k => localStorage.setItem(KEY_STORE, k);
+const delKey = () => localStorage.removeItem(KEY_STORE);
+
+function updateKeyBtn() {
+  const btn = document.getElementById('hdrKeyBtn');
+  const has = !!getKey();
+  btn.className = 'hdr-key' + (has ? ' ok' : '');
+  btn.textContent = has ? '✓ API Key' : '⚙ API Key';
+}
+
+function saveKey(from) {
+  const inp = document.getElementById('key' + from);
+  const err = document.getElementById('err' + from);
+  const k = inp.value.trim();
+  err.style.display = 'none';
+  if (!k.startsWith('sk-ant-')) {
+    err.textContent = 'La clave debe comenzar con "sk-ant-". Cópiala completa desde console.anthropic.com';
+    err.style.display = 'block'; return;
+  }
+  setKey(k); updateKeyBtn();
+  if (from === 0) showStep(1); else backFromKey();
+}
+
+function deleteKey() {
+  if (confirm('¿Eliminar la API key guardada?')) {
+    delKey(); updateKeyBtn(); showStep(0);
+  }
+}
+
+function backFromKey() { showStep(state.prevStep || 1); }
+function toggleEye(id, btnId) {
+  const inp = document.getElementById(id);
+  const btn = document.getElementById(btnId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// ─── STEPS ──────────────────────────────────────────────────────────────────
+function showStep(n) {
+  if (n === 9) {
+    const cur = document.querySelector('.step.active');
+    if (cur) state.prevStep = parseInt(cur.id.replace('step','')) || 1;
+  }
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+}
+
+// ─── FOTO ────────────────────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    state.imgBase64 = dataUrl.split(',')[1];
+    state.imgMediaType = dataUrl.includes('image/png') ? 'image/png' :
+                         dataUrl.includes('image/webp') ? 'image/webp' : 'image/jpeg';
+    document.getElementById('prevImg').src = dataUrl;
+    document.getElementById('prevWrap').style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+});
+
+function resetPhoto() {
+  state.imgBase64 = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('prevWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
+}
+
+// ─── ANÁLISIS ────────────────────────────────────────────────────────────────
+const loadMsgs = [
+  'Midiendo la vara de escala (1 metro)...',
+  'Detectando secciones de madera...',
+  'Aplicando Watershed + Hough...',
+  'Clasificando diámetros por tabla JAS...',
+  'Calculando volúmenes...',
+];
+
+async function startAnalysis() {
+  const err = document.getElementById('err1');
+  err.style.display = 'none';
+  if (!state.imgBase64) { err.textContent = 'Selecciona una fotografía.'; err.style.display='block'; return; }
+  const largo = parseFloat(document.getElementById('largoSelect').value);
+  if (!largo) { err.textContent = 'Selecciona el largo de las trozas.'; err.style.display='block'; return; }
+  state.largo = largo;
+  state.rumaId = document.getElementById('rumaId').value.trim();
+
+  showStep(2);
+  let mi = 0;
+  const ticker = setInterval(() => {
+    document.getElementById('loadMsg').textContent = loadMsgs[mi++ % loadMsgs.length];
+  }, 2200);
+
+  const prompt = `Eres un sistema de medición forestal. Analiza esta fotografía de una ruma (pila) de trozas de madera fotografiada desde el extremo.
+
+ESCALA: Hay una vara blanca vertical en el borde izquierdo de la imagen que mide exactamente 1 metro.
+
+MUY IMPORTANTE: Todas las coordenadas deben ser NORMALIZADAS entre 0.0 y 1.0.
+- x=0.0 es el borde izquierdo, x=1.0 es el borde derecho
+- y=0.0 es el borde superior, y=1.0 es el borde inferior
+- r (radio) se normaliza como fracción del ANCHO de la imagen
+
+PASO 1 — ESCALA:
+Detecta la vara blanca vertical en el borde izquierdo.
+escala_norm = altura_vara_px / alto_imagen_px  (valor entre 0.0 y 1.0)
+
+PASO 2 — PERÍMETRO:
+Polígono de 8-16 vértices alrededor de la ruma. Coordenadas normalizadas 0.0-1.0.
+
+PASO 3 — TROZAS:
+Detecta TODAS las trozas visibles. Para cada una:
+  cx, cy: centro normalizado (0.0-1.0)
+  r: radio normalizado = radio_px / ancho_imagen_px
+
+Responde ÚNICAMENTE con JSON, sin texto ni bloques markdown:
+{"escala_norm":0.42,"polygon":[{"x":0.05,"y":0.92},{"x":0.95,"y":0.08}],"circles":[{"cx":0.25,"cy":0.60,"r":0.032}]}`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -520,35 +1082,10 @@ Responde ÚNICAMENTE con JSON sin texto adicional ni bloques markdown:
     state.scalePxPerM = parsed.escala_px_metro || 326;
     state.circles = (parsed.circles || []).map(c => ({x:c.cx, y:c.cy, r:c.r}));
     state.polygon = parsed.polygon || [];
-    state.selected = -1;
-
-    // DEBUG: verificar coordenadas recibidas vs tamaño imagen
-    const tmpImg = new Image();
-    tmpImg.onload = () => {
-      console.log('=== DEBUG COORDENADAS ===');
-      console.log('Imagen original:', tmpImg.naturalWidth, 'x', tmpImg.naturalHeight);
-      console.log('escala_px_metro:', parsed.escala_px_metro);
-      console.log('Círculos recibidos (primeros 3):', state.circles.slice(0,3));
-      console.log('Polígono (primeros 3 vértices):', state.polygon.slice(0,3));
-      // Verificar si las coords están en rango de la imagen
-      const outOfRange = state.circles.filter(c =>
-        c.x < 0 || c.x > tmpImg.naturalWidth ||
-        c.y < 0 || c.y > tmpImg.naturalHeight
-      );
-      console.log('Círculos FUERA de rango:', outOfRange.length, '/', state.circles.length);
-      if (state.circles.length > 0) {
-        const xs = state.circles.map(c=>c.x);
-        const ys = state.circles.map(c=>c.y);
-        const rs = state.circles.map(c=>c.r);
-        console.log('X rango:', Math.min(...xs).toFixed(0), '-', Math.max(...xs).toFixed(0));
-        console.log('Y rango:', Math.min(...ys).toFixed(0), '-', Math.max(...ys).toFixed(0));
-        console.log('R rango:', Math.min(...rs).toFixed(0), '-', Math.max(...rs).toFixed(0));
-      }
+      loadEditor();
+      showStep(3);
     };
-    tmpImg.src = 'data:' + state.imgMediaType + ';base64,' + state.imgBase64;
-
-    loadEditor();
-    showStep(3);
+    _imgForSize.src = 'data:' + state.imgMediaType + ';base64,' + state.imgBase64;
 
   } catch(e) {
     clearInterval(ticker);
