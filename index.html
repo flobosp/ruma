@@ -323,7 +323,17 @@ tfoot td:first-child{text-align:left}
 
 </div><!-- /main -->
 
+
+
 <script>
+// Definir funciones críticas primero (llamadas desde HTML inline)
+function toggleEye(id, btnId) {
+  const inp = document.getElementById(id);
+  const btn = document.getElementById(btnId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
 // ─── CONSTANTES ────────────────────────────────────────────────────────────
 const KEY_STORE = 'rumavol_key';
 const CM_PER_PX_DEFAULT = 100/326; // calibración imagen Ruma01
@@ -349,7 +359,7 @@ let state = {
 };
 
 // ─── INIT ───────────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
+window.addEventListener('DOMContentLoaded', () => {
   buildLargoOptions();
   updateKeyBtn();
   if (getKey()) showStep(1); else showStep(0);
@@ -397,12 +407,7 @@ function deleteKey() {
 }
 
 function backFromKey() { showStep(state.prevStep || 1); }
-function toggleEye(id, btnId) {
-  const inp = document.getElementById(id);
-  const btn = document.getElementById(btnId);
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
-}
+// toggleEye movida al inicio del script
 
 // ─── STEPS ──────────────────────────────────────────────────────────────────
 function showStep(n) {
@@ -883,6 +888,14 @@ tfoot td:first-child{text-align:left}
 </div><!-- /main -->
 
 <script>
+// Definir funciones críticas primero (llamadas desde HTML inline)
+function toggleEye(id, btnId) {
+  const inp = document.getElementById(id);
+  const btn = document.getElementById(btnId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
 // ─── CONSTANTES ────────────────────────────────────────────────────────────
 const KEY_STORE = 'rumavol_key';
 const CM_PER_PX_DEFAULT = 100/326; // calibración imagen Ruma01
@@ -908,7 +921,7 @@ let state = {
 };
 
 // ─── INIT ───────────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
+window.addEventListener('DOMContentLoaded', () => {
   buildLargoOptions();
   updateKeyBtn();
   if (getKey()) showStep(1); else showStep(0);
@@ -956,12 +969,7 @@ function deleteKey() {
 }
 
 function backFromKey() { showStep(state.prevStep || 1); }
-function toggleEye(id, btnId) {
-  const inp = document.getElementById(id);
-  const btn = document.getElementById(btnId);
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
-}
+// toggleEye movida al inicio del script
 
 // ─── STEPS ──────────────────────────────────────────────────────────────────
 function showStep(n) {
