@@ -522,6 +522,31 @@ Responde ÚNICAMENTE con JSON sin texto adicional ni bloques markdown:
     state.polygon = parsed.polygon || [];
     state.selected = -1;
 
+    // DEBUG: verificar coordenadas recibidas vs tamaño imagen
+    const tmpImg = new Image();
+    tmpImg.onload = () => {
+      console.log('=== DEBUG COORDENADAS ===');
+      console.log('Imagen original:', tmpImg.naturalWidth, 'x', tmpImg.naturalHeight);
+      console.log('escala_px_metro:', parsed.escala_px_metro);
+      console.log('Círculos recibidos (primeros 3):', state.circles.slice(0,3));
+      console.log('Polígono (primeros 3 vértices):', state.polygon.slice(0,3));
+      // Verificar si las coords están en rango de la imagen
+      const outOfRange = state.circles.filter(c =>
+        c.x < 0 || c.x > tmpImg.naturalWidth ||
+        c.y < 0 || c.y > tmpImg.naturalHeight
+      );
+      console.log('Círculos FUERA de rango:', outOfRange.length, '/', state.circles.length);
+      if (state.circles.length > 0) {
+        const xs = state.circles.map(c=>c.x);
+        const ys = state.circles.map(c=>c.y);
+        const rs = state.circles.map(c=>c.r);
+        console.log('X rango:', Math.min(...xs).toFixed(0), '-', Math.max(...xs).toFixed(0));
+        console.log('Y rango:', Math.min(...ys).toFixed(0), '-', Math.max(...ys).toFixed(0));
+        console.log('R rango:', Math.min(...rs).toFixed(0), '-', Math.max(...rs).toFixed(0));
+      }
+    };
+    tmpImg.src = 'data:' + state.imgMediaType + ';base64,' + state.imgBase64;
+
     loadEditor();
     showStep(3);
 
