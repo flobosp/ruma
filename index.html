@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a2e1a">
+<title>RumaVol — Inventario de Trozas</title>
+<style>
+:root {
+  --bg:#0d1a0d;--bg2:#132013;--bg3:#1a2e1a;--border:#2a4a2a;--border2:#3a6a3a;
+  --green:#4caf50;--green2:#66bb6a;--green3:#a5d6a7;
+  --text:#e8f5e9;--text2:#a5d6a7;--text3:#5a8a5a;
+  --amber:#ffa726;--red:#ef5350;--r:10px;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden}
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200}
+.hdr-icon{width:34px;height:34px;background:var(--green);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.hdr h1{font-size:16px;font-weight:700}.hdr p{font-size:10px;color:var(--text3);margin-top:1px}
+.hdr-key{margin-left:auto;background:none;border:1px solid var(--border2);
+  border-radius:20px;color:var(--text3);font-size:11px;padding:4px 10px;cursor:pointer;flex-shrink:0}
+.hdr-key.ok{border-color:var(--green);color:var(--green2)}
+.main{padding:16px 14px 60px;max-width:520px;margin:0 auto}
+.step{display:none}.step.active{display:block}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card h3{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:10px}
+.fg{margin-bottom:14px}
+.fg label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;font-weight:500}
+.fg input,.fg select{width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:14px;padding:9px 12px;
+  outline:none;appearance:none;-webkit-appearance:none}
+.fg input:focus,.fg select:focus{border-color:var(--green)}
+.sel-wrap{position:relative}.sel-arr{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text3);font-size:11px}
+.key-wrap{position:relative}
+.key-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px}
+.upload{border:2px dashed var(--border2);border-radius:var(--r);padding:28px 16px;
+  text-align:center;cursor:pointer;background:var(--bg2);margin-bottom:14px;position:relative}
+.upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload .ico{font-size:36px;margin-bottom:10px}
+.upload h2{font-size:15px;font-weight:600;margin-bottom:5px}
+.upload p{font-size:12px;color:var(--text3);line-height:1.5}
+.prev-wrap{position:relative;margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.prev-wrap img{width:100%;display:block;max-height:260px;object-fit:cover}
+.prev-btn{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;border-radius:20px;padding:4px 10px;cursor:pointer;border:none}
+.btn{width:100%;padding:13px;border-radius:var(--r);font-size:15px;font-weight:600;
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn+.btn{margin-top:8px}
+.btn-primary{background:var(--green);color:#071407}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-danger{background:rgba(239,83,80,.12);color:var(--red);border:1px solid rgba(239,83,80,.3)}
+.info{background:rgba(76,175,80,.07);border:1px solid rgba(76,175,80,.2);border-radius:8px;
+  padding:10px 12px;font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:14px}
+.info strong{color:var(--green2);display:block;margin-bottom:3px;font-size:12px}
+.err{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.3);border-radius:8px;
+  padding:12px;font-size:12px;color:var(--red);line-height:1.5;margin-bottom:12px;display:none}
+.loading{text-align:center;padding:40px 20px}
+.spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--green);
+  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading h2{font-size:15px;margin-bottom:5px}.loading p{font-size:12px;color:var(--text3)}
+.editor-wrap{position:relative;margin-bottom:12px;border-radius:var(--r);
+  overflow:hidden;border:1px solid var(--border);touch-action:none;user-select:none}
+#editorCanvas{width:100%;display:block;touch-action:none}
+.toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tbtn{padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer}
+.tbtn.active{background:var(--green);color:#071407;border-color:var(--green)}
+.hint{font-size:11px;color:var(--text3);margin-bottom:10px;padding:8px 10px;
+  background:var(--bg3);border-radius:6px;line-height:1.5}
+.mini-stats{display:flex;gap:8px;margin-bottom:12px}
+.ms{flex:1;text-align:center;background:var(--bg3);border-radius:8px;padding:8px}
+.ms-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:2px}
+.ms-val{font-size:18px;font-weight:700;color:var(--green2)}
+.ms-val.amber{color:var(--amber)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{background:var(--bg3);border-radius:8px;padding:10px}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.stat-val{font-size:20px;font-weight:700;color:var(--green2)}
+.stat-unit{font-size:11px;color:var(--text3);margin-top:1px}
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:300px}
+thead th{background:var(--bg3);color:var(--text2);font-weight:600;padding:9px 10px;
+  text-align:center;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+tbody td{padding:8px 10px;text-align:center;color:var(--text)}
+tbody td:first-child{text-align:left;font-weight:600;color:var(--green2)}
+tfoot td{padding:9px 10px;text-align:center;background:var(--bg3);
+  font-weight:700;color:var(--amber);border-top:2px solid var(--border2)}
+tfoot td:first-child{text-align:left}
+.key-screen{text-align:center;padding:24px 0 8px}
+.key-screen .lock{font-size:48px;margin-bottom:14px}
+.key-screen h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.key-screen p{font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:18px}
+.key-steps{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px;margin-bottom:16px;text-align:left}
+.key-steps h3{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:8px;
+  text-transform:uppercase;letter-spacing:.4px}
+.ks{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.ks:last-child{margin-bottom:0}
+.ks-num{width:18px;height:18px;background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:10px;
+  font-weight:700;color:#071407;flex-shrink:0;margin-top:1px}
+.ks p{font-size:11px;color:var(--text3);line-height:1.5;margin:0}
+.ks a{color:var(--green2)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-icon">🪵</div>
+  <div><h1>RumaVol</h1><p>Inventario de trozas · Fórmula JAS</p></div>
+  <button class="hdr-key" id="hdrKeyBtn" onclick="goStep(9)">⚙ API Key</button>
+</div>
+
+<div class="main">
+
+<!-- PASO 0: API Key -->
+<div class="step active" id="step0">
+  <div class="key-screen">
+    <div class="lock">🔑</div>
+    <h2>Configura tu API Key</h2>
+    <p>RumaVol usa inteligencia artificial para detectar y medir las trozas. Necesitas una API key gratuita de Anthropic.</p>
+  </div>
+  <div class="key-steps">
+    <h3>Cómo obtener tu API key</h3>
+    <div class="ks"><div class="ks-num">1</div><p>Entra a <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> y crea una cuenta gratuita</p></div>
+    <div class="ks"><div class="ks-num">2</div><p>Ve a <strong>API Keys → Create Key</strong></p></div>
+    <div class="ks"><div class="ks-num">3</div><p>Copia la clave y pégala abajo</p></div>
+    <div class="ks"><div class="ks-num">4</div><p>Se guarda solo en este dispositivo</p></div>
+  </div>
+  <div class="fg">
+    <label>API Key de Anthropic</label>
+    <div class="key-wrap">
+      <input type="password" id="inp0" placeholder="sk-ant-..." autocomplete="off"/>
+      <button class="key-eye" id="eye0" onclick="toggleEye('inp0','eye0')">👁</button>
+    </div>
+  </div>
+  <div class="err" id="err0"></div>
+  <button class="btn btn-primary" onclick="saveKey(0)">✓ Guardar y continuar</button>
+</div>
+
+<!-- PASO 1: Foto + parámetros -->
+<div class="step" id="step1">
+  <div id="uploadZone" class="upload">
+    <input type="file" accept="image/*" capture="environment" id="fileInput"/>
+    <div class="ico">📷</div>
+    <h2>Fotografía de la ruma</h2>
+    <p>Toca para fotografiar o elegir imagen.<br>Incluye una <strong>vara blanca vertical de 1 metro</strong> como escala.</p>
+  </div>
+  <div id="prevWrap" class="prev-wrap" style="display:none">
+    <img id="prevImg" src="" alt=""/>
+    <button class="prev-btn" onclick="resetPhoto()">Cambiar foto</button>
+  </div>
+  <div class="info">
+    <strong>📐 Escala obligatoria</strong>
+    Una vara blanca de exactamente 1 metro en el borde izquierdo permite medir los diámetros automáticamente.
+  </div>
+  <div class="fg">
+    <label>Largo de las trozas (metros)</label>
+    <div class="sel-wrap">
+      <select id="largoSel"><option value="">— Selecciona el largo —</option></select>
+      <span class="sel-arr">▼</span>
+    </div>
+  </div>
+  <div class="fg">
+    <label>Identificación de la ruma (opcional)</label>
+    <input type="text" id="rumaId" placeholder="Ej: Ruma 01 — Rodal Norte"/>
+  </div>
+  <div class="err" id="err1"></div>
+  <button class="btn btn-primary" onclick="startAnalysis()">🔍 Detectar trozas automáticamente</button>
+</div>
+
+<!-- PASO 2: Cargando -->
+<div class="step" id="step2">
+  <div class="loading">
+    <div class="spinner"></div>
+    <h2>Analizando imagen...</h2>
+    <p id="loadMsg">Detectando escala y midiendo diámetros</p>
+  </div>
+</div>
+
+<!-- PASO 3: Editor -->
+<div class="step" id="step3">
+  <div class="card">
+    <h3>Editor de trozas</h3>
+    <div class="toolbar">
+      <button class="tbtn active" id="tool-select" onclick="setTool('select')">👆 Sel.</button>
+      <button class="tbtn" id="tool-add" onclick="setTool('add')">➕ Agregar</button>
+      <button class="tbtn" id="tool-delete" onclick="setTool('delete')">🗑 Eliminar</button>
+      <button class="tbtn" id="tool-poly" onclick="setTool('poly')">⬡ Perímetro</button>
+    </div>
+    <div class="hint" id="edHint">👆 <strong>Seleccionar:</strong> toca una troza para seleccionarla. Arrastra el centro para moverla, arrastra el borde para cambiar su tamaño.</div>
+    <div class="editor-wrap"><canvas id="editorCanvas"></canvas></div>
+    <div class="mini-stats">
+      <div class="ms"><div class="ms-lbl">Trozas</div><div class="ms-val" id="msN">0</div></div>
+      <div class="ms"><div class="ms-lbl">Largo</div><div class="ms-val" id="msL">—</div></div>
+      <div class="ms"><div class="ms-lbl">Volumen</div><div class="ms-val amber" id="msV">—</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="goStep(4)">📊 Ver tabla de resultados</button>
+    <button class="btn btn-secondary" onclick="resetAll()">↩ Nueva ruma</button>
+  </div>
+</div>
+
+<!-- PASO 4: Resultados -->
+<div class="step" id="step4">
+  <div class="card">
+    <h3 id="resTitle">INVENTARIO RUMA</h3>
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-lbl">Total trozas</div><div class="stat-val" id="rN">—</div><div class="stat-unit">unidades</div></div>
+      <div class="stat"><div class="stat-lbl">Volumen total</div><div class="stat-val" id="rV">—</div><div class="stat-unit">m³ JAS</div></div>
+      <div class="stat"><div class="stat-lbl">Diámetro medio</div><div class="stat-val" id="rD">—</div><div class="stat-unit">cm</div></div>
+      <div class="stat"><div class="stat-lbl">Largo aplicado</div><div class="stat-val" id="rL">—</div><div class="stat-unit">metros</div></div>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Diámetro (cm)</th><th>Cant.</th><th>Vol.Unit.(m³)</th><th>Vol.Tot.(m³)</th><th>%</th></tr></thead>
+      <tbody id="resTbody"></tbody>
+      <tfoot id="resTfoot"></tfoot>
+    </table>
+  </div>
+  <button class="btn btn-secondary" onclick="goStep(3)">✏️ Volver al editor</button>
+  <button class="btn btn-secondary" onclick="copyResults()">📋 Copiar tabla</button>
+  <button class="btn btn-secondary" onclick="resetAll()">📷 Nueva ruma</button>
+</div>
+
+<!-- PASO 9: Cambiar API Key -->
+<div class="step" id="step9">
+  <div class="key-screen">
+    <div class="lock">🔑</div>
+    <h2>Cambiar API Key</h2>
+    <p>Tu clave está guardada en este dispositivo.</p>
+  </div>
+  <div class="fg">
+    <label>Nueva API Key</label>
+    <div class="key-wrap">
+      <input type="password" id="inp9" placeholder="sk-ant-..." autocomplete="off"/>
+      <button class="key-eye" id="eye9" onclick="toggleEye('inp9','eye9')">👁</button>
+    </div>
+  </div>
+  <div class="err" id="err9"></div>
+  <button class="btn btn-primary" onclick="saveKey(9)">✓ Guardar</button>
+  <button class="btn btn-danger" onclick="deleteKey()">🗑 Eliminar key</button>
+  <button class="btn btn-secondary" onclick="goBack()">← Volver</button>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ── STORAGE ──────────────────────────────────────────────────────────────────
+const STORE = 'rumavol_key';
+const getKey  = () => localStorage.getItem(STORE) || '';
+const saveK   = k  => localStorage.setItem(STORE, k);
+const clearK  = () => localStorage.removeItem(STORE);
+
+// ── ESTADO ───────────────────────────────────────────────────────────────────
+let prevStep = 1;
+let imgBase64 = null, imgMediaType = 'image/jpeg', imgEl = null;
+let largo = 0, rumaId = '';
+let scalePxPerM = 326;
+let circles = [];   // [{x,y,r}] en px imagen original
+let polygon = [];   // [{x,y}]   en px imagen original
+let tool = 'select', selected = -1;
+let dragging = false, dragType = null, dragVtx = -1;
+let addStart = null;
+
+// ── NAVEGACIÓN ───────────────────────────────────────────────────────────────
+function goStep(n) {
+  if (n === 9) prevStep = currentStep();
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  if (n === 4) buildResults();
+}
+function currentStep() {
+  const el = document.querySelector('.step.active');
+  return el ? parseInt(el.id.replace('step','')) : 1;
+}
+function goBack() { goStep(prevStep); }
+
+// ── API KEY ───────────────────────────────────────────────────────────────────
+function toggleEye(inpId, btnId) {
+  const inp = document.getElementById(inpId);
+  const btn = document.getElementById(btnId);
+  if (!inp || !btn) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideErr(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+function saveKey(from) {
+  const inpId = from === 0 ? 'inp0' : 'inp9';
+  const errId = 'err' + from;
+  hideErr(errId);
+  const inp = document.getElementById(inpId);
+  if (!inp) { alert('Error interno: input no encontrado'); return; }
+  const k = inp.value.trim();
+  if (k.length < 10) {
+    showErr(errId, 'La clave parece muy corta. Cópiala completa desde console.anthropic.com');
+    return;
+  }
+  saveK(k);
+  updateKeyBtn();
+  if (from === 0) goStep(1); else goBack();
+}
+
+function deleteKey() {
+  if (confirm('¿Eliminar la API key guardada?')) {
+    clearK(); updateKeyBtn(); goStep(0);
+  }
+}
+
+function updateKeyBtn() {
+  const btn = document.getElementById('hdrKeyBtn');
+  if (!btn) return;
+  const has = !!getKey();
+  btn.className = 'hdr-key' + (has ? ' ok' : '');
+  btn.textContent = has ? '✓ API Key' : '⚙ API Key';
+}
+
+// ── FOTO ──────────────────────────────────────────────────────────────────────
+function onFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const url = ev.target.result;
+    imgBase64 = url.split(',')[1];
+    imgMediaType = url.includes('image/png') ? 'image/png'
+                 : url.includes('image/webp') ? 'image/webp' : 'image/jpeg';
+    document.getElementById('prevImg').src = url;
+    document.getElementById('prevWrap').style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetPhoto() {
+  imgBase64 = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('prevWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
+}
+
+// ── LARGO ────────────────────────────────────────────────────────────────────
+function buildLargo() {
+  const sel = document.getElementById('largoSel');
+  for (let l = 2.5; l <= 6.01; l = Math.round((l + 0.20) * 100) / 100) {
+    const o = document.createElement('option');
+    o.value = l.toFixed(2);
+    o.textContent = l.toFixed(2).replace('.', ',') + ' m';
+    sel.appendChild(o);
+  }
+}
+
+// ── ANÁLISIS ─────────────────────────────────────────────────────────────────
+const loadMsgs = [
+  'Midiendo la vara de escala (1 metro)...',
+  'Detectando secciones de madera...',
+  'Aplicando Watershed + Hough...',
+  'Clasificando diámetros...',
+  'Calculando volúmenes...',
+];
+
+async function startAnalysis() {
+  hideErr('err1');
+  if (!imgBase64) { showErr('err1','Selecciona una fotografía primero.'); return; }
+  largo = parseFloat(document.getElementById('largoSel').value);
+  if (!largo) { showErr('err1','Selecciona el largo de las trozas.'); return; }
+  rumaId = document.getElementById('rumaId').value.trim();
+
+  goStep(2);
+  let mi = 0;
+  const ticker = setInterval(() => {
+    const el = document.getElementById('loadMsg');
+    if (el) el.textContent = loadMsgs[mi++ % loadMsgs.length];
+  }, 2200);
+
+  const prompt = `Eres un sistema experto en medición forestal de trozas de madera (cubicación). Analiza esta fotografía de una ruma vista desde el extremo.
+
+ESCALA: Hay una vara o jalón BLANCO VERTICAL en el borde izquierdo de la imagen que mide exactamente 1 metro = 100 cm.
+
+DATOS DE CALIBRACIÓN REALES (úsalos para validar tu conteo):
+- Ruma pequeña forma triangular, fondo bosque: 85 trozas. Diámetros entre 18-42cm.
+- Ruma grande forma rectangular, fondo bosque con galpón: 123 trozas. Diámetros entre 16-40cm.
+Compara visualmente la ruma de la imagen con estas referencias para estimar el total esperado.
+
+INSTRUCCIONES OBLIGATORIAS — sigue este orden exacto:
+
+PASO 1 — ESCALA:
+Localiza la vara blanca vertical en el borde izquierdo.
+- Mide su altura en píxeles: altura_vara_px
+- Calcula: escala_norm = altura_vara_px / alto_imagen_px (valor entre 0.30 y 0.55 típicamente)
+- Esto equivale a: 1 metro = escala_norm * alto_imagen
+
+PASO 2 — PERÍMETRO DE LA RUMA:
+Define un polígono de 10-16 vértices que trace el contorno EXACTO de la ruma.
+- Excluye suelo, cielo, fondo, galpones, troncos laterales sueltos
+- Sigue el borde real de cada troza periférica
+- Coordenadas normalizadas 0.0-1.0
+
+PASO 3 — DETECCIÓN SISTEMÁTICA FILA POR FILA:
+Divide la ruma en franjas horizontales del alto aproximado de 1 troza.
+Recorre de abajo hacia arriba, fila por fila. Para cada fila:
+  a) Cuenta TODAS las trozas visibles incluyendo:
+     - Trozas completas al centro
+     - Trozas parcialmente ocultas (visible al menos 1/3 del círculo)
+     - Trozas en los bordes aunque estén cortadas por el encuadre
+     - Trozas pequeñas encajadas entre las grandes
+  b) Anota el centro y radio de cada una
+
+RANGOS VÁLIDOS DE DIÁMETRO: entre 16 cm y 60 cm.
+Usando la escala: radio mínimo = 0.08 * escala_norm (en coords normalizadas)
+                  radio máximo = 0.30 * escala_norm
+
+PASO 4 — VERIFICACIÓN:
+- Suma los conteos por fila
+- Si el total difiere más de 15% del rango esperado según tamaño visual, revisa las zonas con mayor densidad
+- Verifica que no haya círculos solapados que representen la misma troza
+
+PASO 5 — FORMATO DE SALIDA:
+IMPORTANTE: Todas las coordenadas NORMALIZADAS 0.0-1.0.
+cx,cy = centro de la troza / dimensiones de imagen
+r = radio_px / ancho_imagen_px
+
+Responde ÚNICAMENTE con este JSON sin texto adicional ni bloques markdown:
+{"escala_norm":0.42,"conteo_por_fila":{"f1":13,"f2":14,"f3":15},"total_esperado":123,"polygon":[{"x":0.04,"y":0.95},{"x":0.96,"y":0.95},{"x":0.96,"y":0.08},{"x":0.04,"y":0.08}],"circles":[{"cx":0.10,"cy":0.80,"r":0.028},{"cx":0.20,"cy":0.78,"r":0.032}]}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'x-api-key': getKey(),
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 16000,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: imgMediaType, data: imgBase64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      })
+    });
+
+    clearInterval(ticker);
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      const msg = e.error?.message || ('HTTP ' + resp.status);
+      if (resp.status === 401) throw new Error('API key inválida. Ve a ⚙ API Key para actualizarla.');
+      if (resp.status === 429) throw new Error('Límite de uso alcanzado. Espera unos minutos.');
+      throw new Error('Error API: ' + msg);
+    }
+
+    const data = await resp.json();
+    let raw = data.content.map(b => b.text || '').join('');
+    raw = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+
+    // Desnormalizar coordenadas usando dimensiones reales de la imagen
+    const _img = new Image();
+    _img.onload = () => {
+      const IW = _img.naturalWidth;
+      const IH = _img.naturalHeight;
+      scalePxPerM = (parsed.escala_norm || 0.42) * IH;
+      circles = (parsed.circles || []).map(c => ({
+        x: c.cx * IW,
+        y: c.cy * IH,
+        r: c.r  * IW
+      }));
+      polygon = (parsed.polygon || []).map(p => ({
+        x: p.x * IW,
+        y: p.y * IH
+      }));
+      selected = -1;
+
+      // Mostrar resumen de detección
+      const filas = parsed.conteo_por_fila || {};
+      const totalFilas = Object.values(filas).reduce((s,v)=>s+v,0);
+      const totalCirc = circles.length;
+      console.log('Detección:', totalCirc, 'círculos |', 
+        'conteo por fila:', JSON.stringify(filas), '| total filas:', totalFilas,
+        '| esperado:', parsed.total_esperado,
+        '| escala_norm:', parsed.escala_norm,
+        '| img:', IW+'x'+IH);
+
+      loadEditor();
+      goStep(3);
+    };
+    _img.src = 'data:' + imgMediaType + ';base64,' + imgBase64;
+
+  } catch(e) {
+    clearInterval(ticker);
+    goStep(1);
+    showErr('err1', e.message);
+  }
+}
+
+// ── CANVAS EDITOR ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('editorCanvas');
+const ctx    = canvas.getContext('2d');
+
+function loadEditor() {
+  const img = new Image();
+  img.onload = () => {
+    imgEl = img;
+    // Canvas interno = resolución original (coordenadas 1:1)
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.style.width  = '100%';
+    canvas.style.height = 'auto';
+    redraw();
+    updateMiniStats();
+  };
+  img.src = 'data:' + imgMediaType + ';base64,' + imgBase64;
+}
+
+// Convierte evento de pantalla → px del canvas interno
+function evPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (cx - rect.left) * (canvas.width  / rect.width),
+    y: (cy - rect.top)  * (canvas.height / rect.height)
+  };
+}
+
+function redraw() {
+  if (!imgEl) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(imgEl, 0, 0);
+
+  const lw = Math.max(2, canvas.width * 0.002);
+
+  // Polígono
+  if (polygon.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(polygon[0].x, polygon[0].y);
+    polygon.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(0,255,255,0.85)';
+    ctx.lineWidth = lw;
+    ctx.setLineDash([canvas.width*0.005, canvas.width*0.003]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (tool === 'poly') {
+      const vr = Math.max(8, canvas.width * 0.008);
+      polygon.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, vr, 0, Math.PI*2);
+        ctx.fillStyle = i === dragVtx ? '#ffeb3b' : 'rgba(0,255,255,0.85)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+    }
+  }
+
+  // Círculos
+  circles.forEach((c, i) => {
+    const sel = i === selected;
+    // Sombra
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r + lw, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = lw * 1.5;
+    ctx.stroke();
+    // Círculo
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+    ctx.strokeStyle = sel ? '#ffeb3b' : 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = sel ? lw * 1.8 : lw;
+    ctx.stroke();
+    // Centro
+    const dr = Math.max(4, c.r * 0.06);
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, dr, 0, Math.PI*2);
+    ctx.fillStyle = sel ? '#ffeb3b' : 'white';
+    ctx.fill();
+    // Diámetro si seleccionado
+    if (sel) {
+      const diam = Math.round((c.r / scalePxPerM) * 200);
+      const fs = Math.max(14, Math.min(c.r * 0.4, 32));
+      ctx.font = `bold ${fs}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#000';
+      ctx.fillText(diam + 'cm', c.x + 1, c.y + 1);
+      ctx.fillStyle = '#ffeb3b';
+      ctx.fillText(diam + 'cm', c.x, c.y);
+    }
+  });
+  updateMiniStats();
+}
+
+function updateMiniStats() {
+  const n = circles.length;
+  const vol = circles.reduce((s, c) => {
+    const d = (c.r * 2 / scalePxPerM) * 100;
+    return s + (d * d * largo) / 10000;
+  }, 0);
+  const nEl = document.getElementById('msN');
+  const lEl = document.getElementById('msL');
+  const vEl = document.getElementById('msV');
+  if (nEl) nEl.textContent = n;
+  if (lEl) lEl.textContent = largo.toFixed(2) + 'm';
+  if (vEl) vEl.textContent = vol.toFixed(3) + 'm³';
+}
+
+// ── HERRAMIENTAS ──────────────────────────────────────────────────────────────
+const hints = {
+  select: '👆 <strong>Seleccionar:</strong> toca una troza para seleccionarla. Arrastra el centro para moverla, arrastra el borde para cambiar su tamaño.',
+  add:    '➕ <strong>Agregar:</strong> toca el centro de una troza nueva y arrastra hasta el borde exterior para definir su diámetro.',
+  delete: '🗑 <strong>Eliminar:</strong> toca cualquier troza para eliminarla del conteo.',
+  poly:   '⬡ <strong>Perímetro:</strong> arrastra los vértices del polígono cian para ajustar el contorno de la ruma.',
+};
+
+function setTool(t) {
+  tool = t; selected = -1; dragging = false;
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tool-' + t);
+  if (btn) btn.classList.add('active');
+  const hint = document.getElementById('edHint');
+  if (hint) hint.innerHTML = hints[t];
+  canvas.style.cursor = t === 'add' ? 'crosshair' : t === 'delete' ? 'pointer' : 'default';
+  redraw();
+}
+
+function hitCircle(px, py) {
+  for (let i = circles.length - 1; i >= 0; i--) {
+    const c = circles[i];
+    const d = Math.hypot(px - c.x, py - c.y);
+    const tol = Math.max(12, c.r * 0.12);
+    if (d <= c.r + tol) return { idx: i, edge: d > c.r - tol * 1.5 };
+  }
+  return null;
+}
+
+function hitVertex(px, py) {
+  const vr = Math.max(15, canvas.width * 0.012);
+  for (let i = 0; i < polygon.length; i++) {
+    if (Math.hypot(px - polygon[i].x, py - polygon[i].y) < vr) return i;
+  }
+  return -1;
+}
+
+// ── EVENTOS CANVAS ────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown',  onDown,  {passive:false});
+canvas.addEventListener('touchstart', onDown,  {passive:false});
+canvas.addEventListener('mousemove',  onMove,  {passive:false});
+canvas.addEventListener('touchmove',  onMove,  {passive:false});
+canvas.addEventListener('mouseup',    onUp,    {passive:false});
+canvas.addEventListener('touchend',   onUp,    {passive:false});
+
+let dragOrig = null;
+
+function onDown(e) {
+  e.preventDefault();
+  const p = evPos(e);
+
+  if (tool === 'delete') {
+    const h = hitCircle(p.x, p.y);
+    if (h) { circles.splice(h.idx, 1); redraw(); }
+    return;
+  }
+  if (tool === 'add') {
+    addStart = p; dragging = true; return;
+  }
+  if (tool === 'poly') {
+    const vi = hitVertex(p.x, p.y);
+    if (vi >= 0) { dragVtx = vi; dragging = true; dragType = 'vertex'; }
+    return;
+  }
+  // select
+  const h = hitCircle(p.x, p.y);
+  if (h) {
+    selected = h.idx; dragging = true;
+    dragType = h.edge ? 'resize' : 'move';
+    dragOrig = { ...p };
+  } else {
+    selected = -1;
+  }
+  redraw();
+}
+
+function onMove(e) {
+  e.preventDefault();
+  if (!dragging) return;
+  const p = evPos(e);
+
+  if (tool === 'add' && addStart) {
+    redraw();
+    const r = Math.hypot(p.x - addStart.x, p.y - addStart.y);
+    ctx.beginPath();
+    ctx.arc(addStart.x, addStart.y, r, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(76,175,80,0.9)';
+    ctx.lineWidth = Math.max(2, canvas.width * 0.002);
+    ctx.stroke();
+    const dr2 = Math.max(4, r * 0.06);
+    ctx.beginPath(); ctx.arc(addStart.x, addStart.y, dr2, 0, Math.PI*2);
+    ctx.fillStyle = '#4caf50'; ctx.fill();
+    return;
+  }
+  if (tool === 'poly' && dragType === 'vertex' && dragVtx >= 0) {
+    polygon[dragVtx] = { x: p.x, y: p.y }; redraw(); return;
+  }
+  if (tool === 'select' && selected >= 0) {
+    const c = circles[selected];
+    const minR = (8 / 100) * scalePxPerM;
+    const maxR = (30 / 100) * scalePxPerM;
+    if (dragType === 'move') {
+      c.x = p.x; c.y = p.y;
+    } else {
+      const nr = Math.hypot(p.x - c.x, p.y - c.y);
+      c.r = Math.max(minR, Math.min(maxR, nr));
+    }
+    redraw();
+  }
+}
+
+function onUp(e) {
+  e.preventDefault();
+  if (tool === 'add' && addStart && dragging) {
+    const eTouch = e.changedTouches ? e.changedTouches[0] : e;
+    const p = evPos(eTouch.clientX !== undefined ? eTouch : e);
+    const r = Math.hypot(p.x - addStart.x, p.y - addStart.y);
+    const minR = (8 / 100) * scalePxPerM;
+    if (r >= minR * 0.4) {
+      circles.push({ x: addStart.x, y: addStart.y, r: Math.max(r, minR) });
+    }
+    addStart = null;
+  }
+  dragging = false; dragType = null; dragVtx = -1;
+  redraw();
+}
+
+// ── RESULTADOS ────────────────────────────────────────────────────────────────
+function jasD(diam_cm) {
+  return Math.max(16, Math.min(60, Math.round(diam_cm / 2) * 2));
+}
+function jasVol(d, l) { return (d * d * l) / 10000; }
+
+function buildResults() {
+  const rId = document.getElementById('rumaId')?.value?.trim() || rumaId;
+  const counts = {};
+  circles.forEach(c => {
+    const d = jasD((c.r * 2 / scalePxPerM) * 100);
+    counts[d] = (counts[d] || 0) + 1;
+  });
+  const rows = Object.entries(counts)
+    .map(([d, n]) => { const di=parseInt(d); return {d:di,n,volU:jasVol(di,largo),volT:jasVol(di,largo)*n}; })
+    .sort((a,b) => a.d - b.d);
+  const totN = rows.reduce((s,r)=>s+r.n,0);
+  const totV = rows.reduce((s,r)=>s+r.volT,0);
+  const dMed = totN > 0
+    ? Math.round(circles.reduce((s,c)=>s+jasD((c.r*2/scalePxPerM)*100),0)/totN) : 0;
+
+  const rtEl = document.getElementById('resTitle');
+  if (rtEl) rtEl.textContent = rId ? 'INVENTARIO — ' + rId.toUpperCase() : 'INVENTARIO DE RUMA';
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('rN', totN); set('rV', totV.toFixed(3)); set('rD', dMed); set('rL', largo.toFixed(2));
+
+  const tbody = document.getElementById('resTbody');
+  if (tbody) {
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const pct = totV > 0 ? (r.volT/totV*100).toFixed(1) : '0.0';
+      tbody.innerHTML += `<tr><td>Ø ${r.d} cm</td><td>${r.n}</td><td>${r.volU.toFixed(4)}</td><td>${r.volT.toFixed(3)}</td><td>${pct}%</td></tr>`;
+    });
+  }
+  const tfoot = document.getElementById('resTfoot');
+  if (tfoot) tfoot.innerHTML = `<tr><td>TOTAL</td><td>${totN}</td><td>—</td><td>${totV.toFixed(3)}</td><td>100%</td></tr>`;
+}
+
+function copyResults() {
+  const rows = document.querySelectorAll('#resTbody tr');
+  const fecha = new Date().toLocaleDateString('es-CL');
+  let txt = `INVENTARIO RUMA JAS — ${fecha}\n`;
+  if (rumaId) txt += `Ruma: ${rumaId}\n`;
+  txt += `Largo: ${largo.toFixed(2)} m | Fórmula: D²×L/10000\n\n`;
+  txt += `Diámetro  | Cant | Vol.Unit. | Vol.Total\n` + '─'.repeat(44) + '\n';
+  rows.forEach(tr => {
+    const td = tr.querySelectorAll('td');
+    txt += `${td[0].textContent.padEnd(10)}| ${String(td[1].textContent).padStart(4)} | ${td[2].textContent.padStart(9)} | ${td[3].textContent.padStart(9)}\n`;
+  });
+  const tf = document.querySelectorAll('#resTfoot td');
+  txt += '─'.repeat(44) + '\n';
+  txt += `TOTAL     | ${String(tf[1].textContent).padStart(4)} |           | ${tf[3].textContent.padStart(9)}\n`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => alert('¡Tabla copiada!'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); alert('¡Tabla copiada!');
+  }
+}
+
+function resetAll() {
+  imgBase64 = null; imgEl = null; circles = []; polygon = []; selected = -1; largo = 0;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('prevWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
+  document.getElementById('largoSel').value = '';
+  document.getElementById('rumaId').value = '';
+  hideErr('err1');
+  goStep(1);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildLargo();
+  updateKeyBtn();
+  document.getElementById('fileInput').addEventListener('change', onFileChange);
+  goStep(getKey() ? 1 : 0);
+});
+</script>
+</body>
+</html>
